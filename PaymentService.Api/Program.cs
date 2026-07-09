@@ -25,6 +25,9 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.Get
 
 builder.Services.AddMassTransit(x =>
 {
+    x.AddConsumer<PaymentService.Api.Application.Consumers.StockReservedEventConsumer>();
+    x.AddConsumer<PaymentService.Api.Application.Consumers.OrderCancelledEventConsumer>();
+
     x.UsingRabbitMq((context, cfg) =>
     {
         var rabbitHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";

@@ -26,8 +26,14 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.Get
 
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
+builder.Services.AddHostedService<InventoryService.Api.Application.Workers.StockReservationCleanupWorker>();
+
 builder.Services.AddMassTransit(x =>
 {
+    x.AddConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>();
+    x.AddConsumer<InventoryService.Api.Application.Consumers.OrderCancelledEventConsumer>();
+    x.AddConsumer<InventoryService.Api.Application.Consumers.OrderConfirmedEventConsumer>();
+
     x.UsingRabbitMq((context, cfg) =>
     {
         var rabbitHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";

@@ -28,6 +28,10 @@ builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddMassTransit(x =>
 {
+    x.AddConsumer<OrderService.Api.Application.Consumers.PaymentProcessedEventConsumer>();
+    x.AddConsumer<OrderService.Api.Application.Consumers.PaymentFailedEventConsumer>();
+    x.AddConsumer<OrderService.Api.Application.Consumers.StockReleasedEventConsumer>();
+
     x.UsingRabbitMq((context, cfg) =>
     {
         var rabbitHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
