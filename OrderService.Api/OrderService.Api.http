@@ -1,0 +1,44 @@
+@HostAddress = http://localhost:5277
+
+### Create Order
+POST {{HostAddress}}/api/v1/orders
+Content-Type: application/json
+
+{
+  "customerId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "idempotencyKey": "unique-order-key-12345",
+  "items": [
+    {
+      "productId": "9b0f1a23-4567-89ab-cdef-0123456789ab",
+      "quantity": 2
+    }
+  ]
+}
+
+###
+
+### Get Order Details
+@orderId = 3fa85f64-5717-4562-b3fc-2c963f66afa6
+GET {{HostAddress}}/api/v1/orders/{{orderId}}
+Accept: application/json
+
+###
+
+### Cancel Order
+PUT {{HostAddress}}/api/v1/orders/{{orderId}}/cancel
+Accept: application/json
+
+###
+
+### List Customer Orders
+@customerId = 3fa85f64-5717-4562-b3fc-2c963f66afa6
+GET {{HostAddress}}/api/v1/orders/customer/{{customerId}}
+Accept: application/json
+
+###
+
+### Retry Failed Order
+POST {{HostAddress}}/api/v1/orders/{{orderId}}/retry
+Accept: application/json
+
+###

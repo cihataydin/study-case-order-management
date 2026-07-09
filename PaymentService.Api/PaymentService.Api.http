@@ -1,0 +1,42 @@
+@HostAddress = http://localhost:5032
+
+### Process Payment
+POST {{HostAddress}}/api/v1/payments/process
+Content-Type: application/json
+
+{
+  "orderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "amount": 199.99,
+  "method": "CreditCard"
+}
+
+###
+
+### Refund Payment
+POST {{HostAddress}}/api/v1/payments/refund
+Content-Type: application/json
+
+{
+  "orderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "amount": 199.99
+}
+
+###
+
+### Get Payment Status
+@paymentId = 3fa85f64-5717-4562-b3fc-2c963f66afa6
+GET {{HostAddress}}/api/v1/payments/{{paymentId}}
+Accept: application/json
+
+###
+
+### Validate Payment Method
+POST {{HostAddress}}/api/v1/payments/validate
+Content-Type: application/json
+
+{
+  "method": "CreditCard",
+  "cardNumber": "1234-5678-9012-3456"
+}
+
+###
