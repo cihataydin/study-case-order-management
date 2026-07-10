@@ -28,19 +28,19 @@ You can run each service in independent terminal windows by navigating to their 
 
 #### A. Order Service (Port: 5277)
 ```bash
-dotnet run --project OrderService.Api/OrderService.Api.csproj
+dotnet run --project src/OrderService.Api/OrderService.Api.csproj
 ```
 Swagger UI: [http://localhost:5277/swagger/index.html](http://localhost:5277/swagger/index.html)
 
 #### B. Inventory Service (Port: 5050)
 ```bash
-dotnet run --project InventoryService.Api/InventoryService.Api.csproj
+dotnet run --project src/InventoryService.Api/InventoryService.Api.csproj
 ```
 Swagger UI: [http://localhost:5050/swagger/index.html](http://localhost:5050/swagger/index.html)
 
 #### C. Payment Service (Port: 5032)
 ```bash
-dotnet run --project PaymentService.Api/PaymentService.Api.csproj
+dotnet run --project src/PaymentService.Api/PaymentService.Api.csproj
 ```
 Swagger UI: [http://localhost:5032/swagger/index.html](http://localhost:5032/swagger/index.html)
 
@@ -53,7 +53,7 @@ If you want to apply migrations manually or add a new migration, you can use the
 
 ```bash
 # Example: Creating a new migration for the Order Service
-cd OrderService.Api
+cd src/OrderService.Api
 dotnet ef migrations add <MigrationName> -o Infrastructure/Data/Migrations
 
 # Updating the database
@@ -119,18 +119,18 @@ dotnet test
 You can run the unit tests for individual services by targeting their test projects:
 ```bash
 # Order Service Unit Tests
-dotnet test OrderService.Api.UnitTests/OrderService.Api.UnitTests.csproj
+dotnet test tests/OrderService.Api.UnitTests/OrderService.Api.UnitTests.csproj
 
 # Inventory Service Unit Tests
-dotnet test InventoryService.Api.UnitTests/InventoryService.Api.UnitTests.csproj
+dotnet test tests/InventoryService.Api.UnitTests/InventoryService.Api.UnitTests.csproj
 
 # Payment Service Unit Tests
-dotnet test PaymentService.Api.UnitTests/PaymentService.Api.UnitTests.csproj
+dotnet test tests/PaymentService.Api.UnitTests/PaymentService.Api.UnitTests.csproj
 ```
 
 ### 3. Running Integration Tests
 Integration tests use **Testcontainers** to spin up real PostgreSQL containers. Ensure Docker is running, then run:
 ```bash
-dotnet test OrderService.Api.IntegrationTests/OrderService.Api.IntegrationTests.csproj
+dotnet test tests/OrderService.Api.IntegrationTests/OrderService.Api.IntegrationTests.csproj
 ```
 

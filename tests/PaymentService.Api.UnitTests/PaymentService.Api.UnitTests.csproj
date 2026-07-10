@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PaymentService.Api\PaymentService.Api.csproj" />
+    <ProjectReference Include="..\..\src\PaymentService.Api\PaymentService.Api.csproj" />
   </ItemGroup>
 
 </Project>
