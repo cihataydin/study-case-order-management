@@ -23,6 +23,17 @@ services:
     networks:
       - ecommerce-network
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: ecommerce-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    networks:
+      - ecommerce-network
+
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: ecommerce-rabbitmq

@@ -3,6 +3,8 @@ using PaymentService.Api.Infrastructure.Data;
 using MassTransit;
 using Serilog;
 using System.Reflection;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,20 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContextPool<PaymentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddSource("MassTransit")
+            .AddOtlpExporter(opt =>
+            {
+                opt.Endpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
+            });
+    });
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
