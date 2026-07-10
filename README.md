@@ -66,3 +66,39 @@ dotnet ef database update
 To ensure the local development and evaluation process is **plug-and-play**, the PostgreSQL and RabbitMQ connection details for docker-compose are defined by default in the `appsettings.json` files. 
 
 In real/production environments, it is recommended to store this sensitive data in files excluded from the repository (such as `appsettings.Development.json`), as **Environment Variables**, or in secure external secret stores like **Azure Key Vault** / **HashiCorp Vault**. The `.gitignore` file in this project is configured according to these standards.
+
+---
+
+## 📊 Testing Observability & Resilience
+
+We have integrated production-ready observability and fault-tolerance mechanisms into the microservices. Here is how you can test and view them:
+
+### 1. Distributed Tracing (Jaeger)
+OpenTelemetry is configured to trace requests across `Order`, `Inventory`, and `Payment` services, including RabbitMQ messaging.
+*   **Access Jaeger UI:** After running `docker compose up -d` and the microservices, go to [http://localhost:16686](http://localhost:16686).
+*   **Test:** Create an order. In Jaeger, select the `OrderService.Api` service and click **Find Traces**. You will see a detailed waterfall graph showing the HTTP request, database insertions, and RabbitMQ message publishing/consuming across all three microservices.
+
+### 2. Custom Metrics (Prometheus)
+Each service exposes runtime and HTTP metrics. The Order Service also exposes custom business metrics (SLA goals).
+*   **Access Metrics:**
+    *   Order Service: [http://localhost:5277/metrics](http://localhost:5277/metrics)
+    *   Inventory Service: [http://localhost:5050/metrics](http://localhost:5050/metrics)
+    *   Payment Service: [http://localhost:5032/metrics](http://localhost:5032/metrics)
+*   **Test:** Create a few orders. Refresh the `http://localhost:5277/metrics` page and look for:
+    *   `orders_created_count`
+    *   `orders_success_count`
+    *   `revenue_total`
+    *   `orders_failed_count`
+    These metrics can be scraped by Prometheus and visualized in Grafana.
+
+### 3. Health Checks
+Liveness and Readiness probes are configured for API routing and orchestrators (like Kubernetes).
+*   **Access Probes:** [http://localhost:5277/health/live](http://localhost:5277/health/live) and `/health/ready` (Applies to all services).
+*   They verify PostgreSQL, Redis, and RabbitMQ connectivity.
+
+### 4. Global Exception Handling & Resilience
+*   **Validation Errors (400 Bad Request):** Send an empty `POST /api/v1/orders` request via Swagger. You will receive an RFC-7807 compliant `ProblemDetails` JSON listing the validation errors.
+*   **Concurrency Conflicts (409 Conflict):** If two identical requests try to update the exact same product stock simultaneously, Optimistic Locking (`RowVersion`) will throw a `DbUpdateConcurrencyException`. The API will automatically return a `409 Conflict` response.
+*   **Network Faults (Polly & MassTransit):** 
+    *   Entity Framework is configured with `.EnableRetryOnFailure()` to survive transient database connection drops.
+    *   MassTransit is configured with `.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)))`. If a consumer fails, it will automatically retry 3 times with a 5-second delay before moving the message to a Dead Letter Queue (DLQ).
