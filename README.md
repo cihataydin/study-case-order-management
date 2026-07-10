@@ -102,3 +102,35 @@ Liveness and Readiness probes are configured for API routing and orchestrators (
 *   **Network Faults (Polly & MassTransit):** 
     *   Entity Framework is configured with `.EnableRetryOnFailure()` to survive transient database connection drops.
     *   MassTransit is configured with `.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)))`. If a consumer fails, it will automatically retry 3 times with a 5-second delay before moving the message to a Dead Letter Queue (DLQ).
+
+---
+
+## 🧪 Running Tests
+
+The solution contains a comprehensive suite of unit tests and Testcontainers-based integration tests.
+
+### 1. Running All Tests
+To run all tests in the solution (including unit and integration tests):
+```bash
+dotnet test
+```
+
+### 2. Running Unit Tests Only
+You can run the unit tests for individual services by targeting their test projects:
+```bash
+# Order Service Unit Tests
+dotnet test OrderService.Api.UnitTests/OrderService.Api.UnitTests.csproj
+
+# Inventory Service Unit Tests
+dotnet test InventoryService.Api.UnitTests/InventoryService.Api.UnitTests.csproj
+
+# Payment Service Unit Tests
+dotnet test PaymentService.Api.UnitTests/PaymentService.Api.UnitTests.csproj
+```
+
+### 3. Running Integration Tests
+Integration tests use **Testcontainers** to spin up real PostgreSQL containers. Ensure Docker is running, then run:
+```bash
+dotnet test OrderService.Api.IntegrationTests/OrderService.Api.IntegrationTests.csproj
+```
+

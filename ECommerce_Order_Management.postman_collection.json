@@ -1,0 +1,378 @@
+{
+	"info": {
+		"_postman_id": "5fa85f64-5717-4562-b3fc-2c963f66afa6",
+		"name": "E-Commerce Order Management System",
+		"description": "Postman Collection for E-Commerce Order Management Microservices",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Order Service",
+			"item": [
+				{
+					"name": "Create Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"customerId\": \"11111111-1111-1111-1111-111111111111\",\n  \"idempotencyKey\": \"unique-key-example-100\",\n  \"paymentMethod\": \"CreditCard\",\n  \"cardNumber\": \"1234567812345678\",\n  \"items\": [\n    {\n      \"productId\": \"e582845c-0aa8-41ec-b248-c28fa4eb0429\",\n      \"quantity\": 2,\n      \"unitPrice\": 150.00\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5277/api/v1/orders",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5277",
+							"path": [
+								"api",
+								"v1",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5277/api/v1/orders/11111111-1111-1111-1111-111111111111",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5277",
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"11111111-1111-1111-1111-111111111111"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Order",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5277/api/v1/orders/11111111-1111-1111-1111-111111111111/cancel",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5277",
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"11111111-1111-1111-1111-111111111111",
+								"cancel"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Customer Orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5277/api/v1/orders/customer/11111111-1111-1111-1111-111111111111",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5277",
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"customer",
+								"11111111-1111-1111-1111-111111111111"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retry Failed Order",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5277/api/v1/orders/11111111-1111-1111-1111-111111111111/retry",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5277",
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"11111111-1111-1111-1111-111111111111",
+								"retry"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Inventory Service",
+			"item": [
+				{
+					"name": "Check Multiple Products Availability",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  {\n    \"productId\": \"e582845c-0aa8-41ec-b248-c28fa4eb0429\",\n    \"quantity\": 2\n  }\n]"
+						},
+						"url": {
+							"raw": "http://localhost:5050/api/v1/inventory/check-availability",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5050",
+							"path": [
+								"api",
+								"v1",
+								"inventory",
+								"check-availability"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reserve Stock",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"11111111-1111-1111-1111-111111111111\",\n  \"items\": [\n    {\n      \"productId\": \"e582845c-0aa8-41ec-b248-c28fa4eb0429\",\n      \"quantity\": 2\n    }\n  ],\n  \"customerName\": \"John Doe\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5050/api/v1/inventory/reserve",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5050",
+							"path": [
+								"api",
+								"v1",
+								"inventory",
+								"reserve"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Release Reservation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"11111111-1111-1111-1111-111111111111\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5050/api/v1/inventory/release",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5050",
+							"path": [
+								"api",
+								"v1",
+								"inventory",
+								"release"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product Stock",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5050/api/v1/inventory/products/e582845c-0aa8-41ec-b248-c28fa4eb0429/stock",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5050",
+							"path": [
+								"api",
+								"v1",
+								"inventory",
+								"products",
+								"e582845c-0aa8-41ec-b248-c28fa4eb0429",
+								"stock"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment Service",
+			"item": [
+				{
+					"name": "Process Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"11111111-1111-1111-1111-111111111111\",\n  \"amount\": 300.00,\n  \"paymentMethod\": \"CreditCard\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5032/api/v1/payments/process",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5032",
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"process"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Process Refund",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentId\": \"11111111-1111-1111-1111-111111111111\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5032/api/v1/payments/refund",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5032",
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"refund"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5032/api/v1/payments/11111111-1111-1111-1111-111111111111",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5032",
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"11111111-1111-1111-1111-111111111111"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate Payment Method",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentMethod\": \"CreditCard\",\n  \"cardNumber\": \"1234567812345678\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5032/api/v1/payments/validate",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5032",
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"validate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

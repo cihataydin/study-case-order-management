@@ -16,7 +16,7 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
     private readonly PaymentDbContext _dbContext;
     private readonly ILogger<StockReservedEventConsumer> _logger;
     private readonly AsyncRetryPolicy _retryPolicy;
-    private static readonly Random _random = new();
+    public static Random RandomGenerator = new();
 
     public StockReservedEventConsumer(PaymentDbContext dbContext, ILogger<StockReservedEventConsumer> logger)
     {
@@ -91,7 +91,7 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
             await Task.Delay(1000); // simulate verification time
         }
 
-        var chance = _random.Next(1, 101);
+        var chance = RandomGenerator.Next(1, 101);
         
         // %85 success, %10 timeout, %5 failure
         if (chance <= 85)
