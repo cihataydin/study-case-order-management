@@ -15,6 +15,14 @@ services:
     networks:
       - ecommerce-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ecommerce-network
+
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: ecommerce-rabbitmq
