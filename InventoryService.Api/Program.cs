@@ -4,6 +4,7 @@ using MassTransit;
 using Serilog;
 using System.Reflection;
 using FluentValidation;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -36,6 +37,13 @@ builder.Services.AddOpenTelemetry()
             {
                 opt.Endpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
             });
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddPrometheusExporter();
     });
 
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -86,6 +94,7 @@ app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+app.MapPrometheusScrapingEndpoint();
 
 app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using OrderService.Api.Infrastructure.Data;
 using OrderService.Api.Domain.Enums;
 using Shared.Events;
+using OrderService.Api.Application.Metrics;
 
 namespace OrderService.Api.Application.Consumers;
 
@@ -13,11 +14,13 @@ public class PaymentProcessedEventConsumer : IConsumer<PaymentProcessedEvent>
 {
     private readonly OrderDbContext _dbContext;
     private readonly ILogger<PaymentProcessedEventConsumer> _logger;
+    private readonly OrderMetrics _metrics;
 
-    public PaymentProcessedEventConsumer(OrderDbContext dbContext, ILogger<PaymentProcessedEventConsumer> logger)
+    public PaymentProcessedEventConsumer(OrderDbContext dbContext, ILogger<PaymentProcessedEventConsumer> logger, OrderMetrics metrics)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _metrics = metrics;
     }
 
     public async Task Consume(ConsumeContext<PaymentProcessedEvent> context)
@@ -33,6 +36,8 @@ public class PaymentProcessedEventConsumer : IConsumer<PaymentProcessedEvent>
             await _dbContext.SaveChangesAsync();
             _logger.LogInformation("Order {OrderId} confirmed.", message.OrderId);
             
+            _metrics.OrderSuccess(order.TotalAmount);
+
             await context.Publish(new OrderConfirmedEvent(message.OrderId));
         }
     }

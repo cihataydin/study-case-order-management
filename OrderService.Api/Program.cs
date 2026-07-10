@@ -4,8 +4,10 @@ using MassTransit;
 using Serilog;
 using System.Reflection;
 using FluentValidation;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using OrderService.Api.Application.Metrics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContextPool<OrderDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddSingleton<OrderMetrics>();
+
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
     .WithTracing(tracing =>
@@ -36,6 +40,14 @@ builder.Services.AddOpenTelemetry()
             {
                 opt.Endpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
             });
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddMeter(OrderMetrics.MeterName)
+            .AddPrometheusExporter();
     });
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
@@ -77,7 +89,9 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 app.UseAuthorization();
+
 app.MapControllers();
+app.MapPrometheusScrapingEndpoint();
 
 app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {

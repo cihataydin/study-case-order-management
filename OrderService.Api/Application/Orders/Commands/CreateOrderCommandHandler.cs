@@ -10,6 +10,7 @@ using OrderService.Api.Domain.Enums;
 using OrderService.Api.Infrastructure.Data;
 using Shared.Events;
 using Microsoft.Extensions.Logging;
+using OrderService.Api.Application.Metrics;
 
 namespace OrderService.Api.Application.Orders.Commands;
 
@@ -18,12 +19,14 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
     private readonly OrderDbContext _dbContext;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
+    private readonly OrderMetrics _metrics;
 
-    public CreateOrderCommandHandler(OrderDbContext dbContext, IPublishEndpoint publishEndpoint, ILogger<CreateOrderCommandHandler> logger)
+    public CreateOrderCommandHandler(OrderDbContext dbContext, IPublishEndpoint publishEndpoint, ILogger<CreateOrderCommandHandler> logger, OrderMetrics metrics)
     {
         _dbContext = dbContext;
         _publishEndpoint = publishEndpoint;
         _logger = logger;
+        _metrics = metrics;
     }
 
     public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -75,6 +78,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
         );
 
         await _publishEndpoint.Publish(orderCreatedEvent, cancellationToken);
+
+        _metrics.OrderCreated();
 
         return order.Id;
     }
