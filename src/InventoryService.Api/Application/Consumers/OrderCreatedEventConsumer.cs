@@ -70,18 +70,27 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
             if (isFlashSale)
             {
                 var cacheKey = $"FlashSale_{message.CustomerId}_{item.ProductId}";
-                var previousPurchasesStr = await _cache.GetStringAsync(cacheKey);
-                int previousPurchases = string.IsNullOrEmpty(previousPurchasesStr) ? 0 : int.Parse(previousPurchasesStr);
-
-                if (previousPurchases + item.Quantity > 2)
+                try
                 {
-                    _logger.LogWarning("Flash sale items limited to max 2 per customer. CustomerId: {CustomerId}, ProductId: {ProductId}", message.CustomerId, item.ProductId);
-                    await context.Publish(new StockReleasedEvent(message.OrderId, $"Flash sale limit exceeded for product {item.ProductId}"));
+                    var previousPurchasesStr = await _cache.GetStringAsync(cacheKey);
+                    int previousPurchases = string.IsNullOrEmpty(previousPurchasesStr) ? 0 : int.Parse(previousPurchasesStr);
+
+                    if (previousPurchases + item.Quantity > 2)
+                    {
+                        _logger.LogWarning("Flash sale items limited to max 2 per customer. CustomerId: {CustomerId}, ProductId: {ProductId}", message.CustomerId, item.ProductId);
+                        await context.Publish(new StockReleasedEvent(message.OrderId, $"Flash sale limit exceeded for product {item.ProductId}"));
+                        return;
+                    }
+                    
+                    // Track the new purchase (set expiration for 30 days as a mock)
+                    await _cache.SetStringAsync(cacheKey, (previousPurchases + item.Quantity).ToString(), new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to connect to Redis cache for Flash Sale validation. Rejecting order to prevent overselling. CustomerId: {CustomerId}, ProductId: {ProductId}", message.CustomerId, item.ProductId);
+                    await context.Publish(new StockReleasedEvent(message.OrderId, "System error during Flash Sale validation."));
                     return;
                 }
-                
-                // Track the new purchase (set expiration for 30 days as a mock)
-                await _cache.SetStringAsync(cacheKey, (previousPurchases + item.Quantity).ToString(), new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) });
             }
 
             product.TotalStock -= item.Quantity;
