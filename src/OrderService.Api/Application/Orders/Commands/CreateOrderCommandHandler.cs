@@ -31,7 +31,6 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
 
     public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        // Check for idempotency
         var existingOrder = await _dbContext.Orders
             .FirstOrDefaultAsync(x => x.IdempotencyKey == request.IdempotencyKey, cancellationToken);
 
@@ -60,6 +59,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
         };
 
         _dbContext.Orders.Add(order);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
         
         var orderCreatedEvent = new OrderCreatedEvent(
             order.Id,
@@ -75,7 +76,6 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
         
         await sendEndpoint.Send(orderCreatedEvent, cancellationToken);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Order {OrderId} created and event saved to Outbox.", order.Id);
 
         _metrics.OrderCreated();

@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 
 using MediatR;
 
+using OrderService.Api.Application.Orders.Commands;
+using OrderService.Api.Application.Orders.Queries;
+
 namespace OrderService.Api.Controllers.v1;
 
 [ApiController]
@@ -16,7 +19,7 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] Application.Orders.Commands.CreateOrderCommand request)
+    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderCommand request)
     {
         var orderId = await _mediator.Send(request);
         return Ok(new { OrderId = orderId });
@@ -25,7 +28,7 @@ public class OrdersController : ControllerBase
     [HttpGet("{orderId:guid}")]
     public async Task<IActionResult> GetOrderDetails(Guid orderId)
     {
-        var order = await _mediator.Send(new Application.Orders.Queries.GetOrderDetailsQuery(orderId));
+        var order = await _mediator.Send(new GetOrderDetailsQuery(orderId));
         if (order == null) return NotFound();
         return Ok(order);
     }
@@ -35,7 +38,7 @@ public class OrdersController : ControllerBase
     {
         try 
         {
-            var result = await _mediator.Send(new Application.Orders.Commands.CancelOrderCommand(orderId));
+            var result = await _mediator.Send(new CancelOrderCommand(orderId));
             if (!result) return BadRequest(new { Message = "Order could not be cancelled. It may not exist or is already completed." });
             return Ok(new { Message = "Order cancelled successfully." });
         }
@@ -48,7 +51,7 @@ public class OrdersController : ControllerBase
     [HttpGet("customer/{customerId:guid}")]
     public async Task<IActionResult> ListCustomerOrders(Guid customerId)
     {
-        var orders = await _mediator.Send(new Application.Orders.Queries.ListCustomerOrdersQuery(customerId));
+        var orders = await _mediator.Send(new ListCustomerOrdersQuery(customerId));
         return Ok(orders);
     }
 
@@ -56,7 +59,7 @@ public class OrdersController : ControllerBase
     [HttpPost("{orderId:guid}/retry")]
     public async Task<IActionResult> RetryFailedOrder(Guid orderId)
     {
-        var result = await _mediator.Send(new Application.Orders.Commands.RetryOrderCommand(orderId));
+        var result = await _mediator.Send(new RetryOrderCommand(orderId));
         if (result)
             return Ok(new { Message = "Order retry initiated." });
             
@@ -73,7 +76,7 @@ public class OrdersController : ControllerBase
     {
         try 
         {
-            var result = await _mediator.Send(new Application.Orders.Commands.ShipOrderCommand(orderId));
+            var result = await _mediator.Send(new ShipOrderCommand(orderId));
             if (!result) return BadRequest(new { Message = "Order could not be shipped. It may not exist." });
             return Ok(new { Message = "Order shipped successfully." });
         }
@@ -88,7 +91,7 @@ public class OrdersController : ControllerBase
     {
         try 
         {
-            var result = await _mediator.Send(new Application.Orders.Commands.DeliverOrderCommand(orderId));
+            var result = await _mediator.Send(new DeliverOrderCommand(orderId));
             if (!result) return BadRequest(new { Message = "Order could not be delivered. It may not exist." });
             return Ok(new { Message = "Order delivered successfully." });
         }
