@@ -18,5 +18,9 @@ public class Order
     
     public string IdempotencyKey { get; set; } = string.Empty;
 
+    public bool IsVip { get; set; }
+    
+    public string PaymentMethod { get; set; } = string.Empty;
+
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 }

@@ -17,13 +17,13 @@ public record RetryOrderCommand(Guid OrderId) : IRequest<bool>;
 public class RetryOrderCommandHandler : IRequestHandler<RetryOrderCommand, bool>
 {
     private readonly OrderDbContext _dbContext;
-    private readonly IPublishEndpoint _publishEndpoint;
+    private readonly ISendEndpointProvider _sendEndpointProvider;
     private readonly ILogger<RetryOrderCommandHandler> _logger;
 
-    public RetryOrderCommandHandler(OrderDbContext dbContext, IPublishEndpoint publishEndpoint, ILogger<RetryOrderCommandHandler> logger)
+    public RetryOrderCommandHandler(OrderDbContext dbContext, ISendEndpointProvider sendEndpointProvider, ILogger<RetryOrderCommandHandler> logger)
     {
         _dbContext = dbContext;
-        _publishEndpoint = publishEndpoint;
+        _sendEndpointProvider = sendEndpointProvider;
         _logger = logger;
     }
 
@@ -53,11 +53,14 @@ public class RetryOrderCommandHandler : IRequestHandler<RetryOrderCommand, bool>
             order.CustomerId,
             order.TotalAmount,
             order.Items.Select(i => new OrderItemDto(i.ProductId, i.Quantity, i.UnitPrice)).ToList(),
-            false, // Simplification for retry
-            "CreditCard" // Simplification for retry
+            order.IsVip,
+            order.PaymentMethod
         );
 
-        await _publishEndpoint.Publish(orderCreatedEvent, cancellationToken);
+        var queueName = order.IsVip ? "queue:vip-orders-queue" : "queue:orders-queue";
+        var sendEndpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri(queueName));
+        
+        await sendEndpoint.Send(orderCreatedEvent, cancellationToken);
 
         return true;
     }

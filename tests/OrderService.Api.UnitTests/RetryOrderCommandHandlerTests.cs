@@ -19,7 +19,8 @@ namespace OrderService.Api.UnitTests;
 public class RetryOrderCommandHandlerTests : IDisposable
 {
     private readonly OrderDbContext _dbContext;
-    private readonly IPublishEndpoint _publishEndpoint;
+    private readonly ISendEndpointProvider _sendEndpointProvider;
+    private readonly ISendEndpoint _sendEndpoint;
     private readonly ILogger<RetryOrderCommandHandler> _logger;
     private readonly RetryOrderCommandHandler _handler;
 
@@ -30,10 +31,12 @@ public class RetryOrderCommandHandlerTests : IDisposable
             .Options;
         _dbContext = new OrderDbContext(options);
 
-        _publishEndpoint = Substitute.For<IPublishEndpoint>();
+        _sendEndpointProvider = Substitute.For<ISendEndpointProvider>();
+        _sendEndpoint = Substitute.For<ISendEndpoint>();
+        _sendEndpointProvider.GetSendEndpoint(Arg.Any<Uri>()).Returns(_sendEndpoint);
         _logger = Substitute.For<ILogger<RetryOrderCommandHandler>>();
 
-        _handler = new RetryOrderCommandHandler(_dbContext, _publishEndpoint, _logger);
+        _handler = new RetryOrderCommandHandler(_dbContext, _sendEndpointProvider, _logger);
     }
 
     [Fact]
@@ -48,6 +51,8 @@ public class RetryOrderCommandHandlerTests : IDisposable
             IdempotencyKey = "retry-key",
             TotalAmount = 250.00m,
             Status = OrderStatus.Failed,
+            IsVip = false,
+            PaymentMethod = "CreditCard",
             Items = new List<OrderItem>
             {
                 new() { ProductId = Guid.NewGuid(), Quantity = 2, UnitPrice = 125.00m }
@@ -68,7 +73,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
         Assert.NotNull(updatedOrder);
         Assert.Equal(OrderStatus.Pending, updatedOrder.Status);
 
-        await _publishEndpoint.Received(1).Publish(
+        await _sendEndpoint.Received(1).Send(
             Arg.Is<OrderCreatedEvent>(e =>
                 e.OrderId == orderId &&
                 e.CustomerId == order.CustomerId &&
@@ -92,7 +97,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
 
         // Assert
         Assert.False(result);
-        await _publishEndpoint.DidNotReceive().Publish(Arg.Any<OrderCreatedEvent>(), Arg.Any<CancellationToken>());
+        await _sendEndpoint.DidNotReceive().Send(Arg.Any<OrderCreatedEvent>(), Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -123,7 +128,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
 
         // Assert
         Assert.False(result);
-        await _publishEndpoint.DidNotReceive().Publish(Arg.Any<OrderCreatedEvent>(), Arg.Any<CancellationToken>());
+        await _sendEndpoint.DidNotReceive().Send(Arg.Any<OrderCreatedEvent>(), Arg.Any<CancellationToken>());
     }
 
     public void Dispose()
