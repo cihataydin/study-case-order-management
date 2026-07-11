@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using PaymentService.Api.Infrastructure.Data;
 using PaymentService.Api.Domain.Enums;
 using Shared.Events;
+using PaymentService.Api.Domain.Entities;
 
 namespace PaymentService.Api.Application.Consumers;
 
@@ -28,14 +29,32 @@ public class OrderCancelledEventConsumer : IConsumer<OrderCancelledEvent>
 
         var payment = await _dbContext.Payments.FirstOrDefaultAsync(p => p.OrderId == message.OrderId);
 
-        if (payment != null && payment.Status == PaymentStatus.Success)
+        if (payment != null)
         {
-            _logger.LogInformation("Initiating refund process for OrderId: {OrderId} amount: {Amount}", message.OrderId, payment.Amount);
-            payment.Status = PaymentStatus.RefundPending;
-            payment.UpdatedAt = DateTime.UtcNow;
+            if (payment.Status != PaymentStatus.RefundPending && payment.Status != PaymentStatus.Reversed)
+            {
+                _logger.LogInformation("Initiating refund process for OrderId: {OrderId} amount: {Amount}", message.OrderId, payment.Amount);
+                payment.Status = PaymentStatus.RefundPending;
+                payment.UpdatedAt = DateTime.UtcNow;
+                await _dbContext.SaveChangesAsync();
+                _logger.LogInformation("Payment marked for refund (RefundPending) for OrderId: {OrderId}", message.OrderId);
+            }
+        }
+        else
+        {
+            // Payment doesn't exist yet, it means cancellation arrived before StockReservedEvent (or payment was never created).
+            // We create a ghost record to block StockReservedEventConsumer from processing it.
+            _logger.LogInformation("Payment not found for OrderId: {OrderId}. Creating ghost record to prevent future processing.", message.OrderId);
+            payment = new Payment
+            {
+                OrderId = message.OrderId,
+                Amount = 0,
+                Method = "Unknown",
+                Status = PaymentStatus.RefundPending, // Or Cancelled
+                UpdatedAt = DateTime.UtcNow
+            };
+            _dbContext.Payments.Add(payment);
             await _dbContext.SaveChangesAsync();
-
-            _logger.LogInformation("Payment marked for refund (RefundPending) for OrderId: {OrderId}", message.OrderId);
         }
     }
 }

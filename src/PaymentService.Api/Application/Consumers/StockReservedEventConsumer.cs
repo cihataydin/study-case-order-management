@@ -8,6 +8,7 @@ using PaymentService.Api.Infrastructure.Data;
 using Shared.Events;
 using Polly;
 using Polly.Retry;
+using Microsoft.EntityFrameworkCore;
 
 namespace PaymentService.Api.Application.Consumers;
 
@@ -37,7 +38,15 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
         var message = context.Message;
         _logger.LogInformation("Processing payment for OrderId: {OrderId}", message.OrderId);
 
-        var payment = new Payment
+        var payment = await _dbContext.Payments.FirstOrDefaultAsync(p => p.OrderId == message.OrderId);
+
+        if (payment != null)
+        {
+            _logger.LogWarning("Payment already exists for OrderId: {OrderId} with status {Status}. It may have been cancelled.", message.OrderId, payment.Status);
+            return;
+        }
+
+        payment = new Payment
         {
             OrderId = message.OrderId,
             Amount = message.TotalAmount,
