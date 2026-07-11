@@ -47,6 +47,7 @@ public class StockReservationCleanupWorker : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        var publishEndpoint = scope.ServiceProvider.GetRequiredService<MassTransit.IPublishEndpoint>();
 
         var expiredReservations = await dbContext.StockReservations
             .Where(r => r.ExpiresAt <= DateTime.UtcNow)
@@ -74,5 +75,11 @@ public class StockReservationCleanupWorker : BackgroundService
 
         dbContext.StockReservations.RemoveRange(expiredReservations);
         await dbContext.SaveChangesAsync(stoppingToken);
+
+        var orderIds = expiredReservations.Select(r => r.OrderId).Distinct().ToList();
+        foreach (var orderId in orderIds)
+        {
+            await publishEndpoint.Publish(new Shared.Events.StockReleasedEvent(orderId, "Reservation expired after 10 minutes"), stoppingToken);
+        }
     }
 }

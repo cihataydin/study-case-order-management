@@ -17,13 +17,20 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
     private readonly ILogger<OrderCreatedEventConsumer> _logger;
     private readonly IDistributedCache _cache;
     private readonly Application.Metrics.InventoryMetrics _metrics;
+    private readonly StackExchange.Redis.IConnectionMultiplexer _redis;
 
-    public OrderCreatedEventConsumer(InventoryDbContext dbContext, ILogger<OrderCreatedEventConsumer> logger, IDistributedCache cache, Application.Metrics.InventoryMetrics metrics)
+    public OrderCreatedEventConsumer(
+        InventoryDbContext dbContext, 
+        ILogger<OrderCreatedEventConsumer> logger, 
+        IDistributedCache cache, 
+        Application.Metrics.InventoryMetrics metrics,
+        StackExchange.Redis.IConnectionMultiplexer redis)
     {
         _dbContext = dbContext;
         _logger = logger;
         _cache = cache;
         _metrics = metrics;
+        _redis = redis;
     }
 
     public async Task Consume(ConsumeContext<OrderCreatedEvent> context)
@@ -40,8 +47,6 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
         var products = await _dbContext.Products
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id);
-
-        var flashSaleUpdates = new System.Collections.Generic.Dictionary<string, int>();
 
         foreach (var item in groupedItems)
         {
@@ -70,24 +75,30 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
 
             // Fake Flash Sale Check (for the sake of the rule, let's assume any product with TotalStock > 1000 is a flash sale item)
             // Or ideally it should be a flag on the entity. Let's assume there's a convention.
-            bool isFlashSale = product.Name.Contains("Flash"); // simplistic mock
+            bool isFlashSale = product.Name.Contains("Flash");
             if (isFlashSale)
             {
-                var cacheKey = $"FlashSale_{message.CustomerId}_{item.ProductId}";
+                var cacheKey = $"Inventory_FlashSale_{message.CustomerId}_{item.ProductId}";
                 try
                 {
-                    var previousPurchasesStr = await _cache.GetStringAsync(cacheKey);
-                    int previousPurchases = string.IsNullOrEmpty(previousPurchasesStr) ? 0 : int.Parse(previousPurchasesStr);
-
-                    if (previousPurchases + item.Quantity > 2)
+                    var db = _redis.GetDatabase();
+                    long newCount = await db.StringIncrementAsync(cacheKey, item.Quantity);
+                    
+                    if (newCount == item.Quantity) 
                     {
+                        // Set expiration on first increment
+                        await db.KeyExpireAsync(cacheKey, TimeSpan.FromDays(30));
+                    }
+
+                    if (newCount > 2)
+                    {
+                        // Revert the increment
+                        await db.StringDecrementAsync(cacheKey, item.Quantity);
+                        
                         _logger.LogWarning("Flash sale items limited to max 2 per customer. CustomerId: {CustomerId}, ProductId: {ProductId}", message.CustomerId, item.ProductId);
                         await context.Publish(new StockReleasedEvent(message.OrderId, $"Flash sale limit exceeded for product {item.ProductId}"));
                         return;
                     }
-                    
-                    // Defer cache update until DB commit
-                    flashSaleUpdates[cacheKey] = previousPurchases + item.Quantity;
                 }
                 catch (Exception ex)
                 {
@@ -120,12 +131,6 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
         try
         {
             await _dbContext.SaveChangesAsync();
-
-            // Apply flash sale cache updates only if DB save succeeds
-            foreach (var kvp in flashSaleUpdates)
-            {
-                await _cache.SetStringAsync(kvp.Key, kvp.Value.ToString(), new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) });
-            }
 
             _logger.LogInformation("Stock reserved successfully for OrderId: {OrderId}", message.OrderId);
             await context.Publish(new StockReservedEvent(message.OrderId, message.TotalAmount, message.PaymentMethod));

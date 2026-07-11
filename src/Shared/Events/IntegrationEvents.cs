@@ -17,7 +17,7 @@ public record PaymentFailedEvent(Guid OrderId, string Reason);
 
 public record OrderConfirmedEvent(Guid OrderId);
 
-public record OrderCancelledEvent(Guid OrderId, string Reason);
+public record OrderCancelledEvent(Guid OrderId, string Reason, List<OrderItemDto>? Items = null);
 
 public record OrderShippedEvent(Guid OrderId);
 

@@ -61,6 +61,9 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "Inventory_";
 });
 
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => 
+    StackExchange.Redis.ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
+
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());

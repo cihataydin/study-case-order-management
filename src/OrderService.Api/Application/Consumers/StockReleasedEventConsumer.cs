@@ -28,9 +28,15 @@ public class StockReleasedEventConsumer : IConsumer<StockReleasedEvent>
         var message = context.Message;
         _logger.LogInformation("StockReleasedEvent received for OrderId: {OrderId}. Reason: {Reason}", message.OrderId, message.Reason);
 
-        var order = await _dbContext.Orders.FirstOrDefaultAsync(o => o.Id == message.OrderId);
+        var order = await _dbContext.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == message.OrderId);
         if (order != null)
         {
+            if (order.Status != OrderStatus.Pending)
+            {
+                _logger.LogWarning("Order {OrderId} is in {Status} status. Ignoring StockReleasedEvent.", message.OrderId, order.Status);
+                return;
+            }
+
             order.Status = OrderStatus.Failed;
             order.UpdatedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
@@ -38,7 +44,8 @@ public class StockReleasedEventConsumer : IConsumer<StockReleasedEvent>
             
             _metrics.OrderFailed();
 
-            await context.Publish(new OrderCancelledEvent(message.OrderId, message.Reason));
+            var orderItems = order.Items?.Select(i => new OrderItemDto(i.ProductId, i.Quantity, i.UnitPrice)).ToList();
+            await context.Publish(new OrderCancelledEvent(message.OrderId, message.Reason, orderItems));
         }
     }
 }

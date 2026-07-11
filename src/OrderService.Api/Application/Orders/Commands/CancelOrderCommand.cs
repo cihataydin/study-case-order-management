@@ -28,7 +28,7 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
 
     public async Task<bool> Handle(CancelOrderCommand request, CancellationToken cancellationToken)
     {
-        var order = await _dbContext.Orders.FirstOrDefaultAsync(o => o.Id == request.OrderId, cancellationToken);
+        var order = await _dbContext.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == request.OrderId, cancellationToken);
         if (order == null)
         {
             _logger.LogWarning("Order not found: {OrderId}", request.OrderId);
@@ -53,7 +53,9 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Order {OrderId} cancelled by user.", request.OrderId);
-        await _publishEndpoint.Publish(new OrderCancelledEvent(request.OrderId, "User requested cancellation"), cancellationToken);
+        
+        var orderItems = order.Items?.Select(i => new OrderItemDto(i.ProductId, i.Quantity, i.UnitPrice)).ToList();
+        await _publishEndpoint.Publish(new OrderCancelledEvent(request.OrderId, "User requested cancellation", orderItems), cancellationToken);
 
         return true;
     }

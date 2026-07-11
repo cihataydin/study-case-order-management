@@ -31,6 +31,27 @@ public class OrderCancelledEventConsumer : IConsumer<OrderCancelledEvent>
 
         if (reservations.Any())
         {
+            _dbContext.StockReservations.RemoveRange(reservations);
+        }
+
+        if (message.Items != null && message.Items.Any())
+        {
+            var productIds = message.Items.Select(i => i.ProductId).ToList();
+            var products = await _dbContext.Products
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id);
+
+            foreach (var item in message.Items)
+            {
+                if (products.TryGetValue(item.ProductId, out var product))
+                {
+                    product.TotalStock += item.Quantity;
+                    _logger.LogInformation("Released {Quantity} stock for ProductId: {ProductId}", item.Quantity, item.ProductId);
+                }
+            }
+        }
+        else if (reservations.Any())
+        {
             var productIds = reservations.Select(r => r.ProductId).ToList();
             var products = await _dbContext.Products
                 .Where(p => productIds.Contains(p.Id))
@@ -41,13 +62,12 @@ public class OrderCancelledEventConsumer : IConsumer<OrderCancelledEvent>
                 if (products.TryGetValue(reservation.ProductId, out var product))
                 {
                     product.TotalStock += reservation.Quantity;
-                    _logger.LogInformation("Released {Quantity} stock for ProductId: {ProductId}", reservation.Quantity, reservation.ProductId);
+                    _logger.LogInformation("Released {Quantity} stock for ProductId: {ProductId} (fallback)", reservation.Quantity, reservation.ProductId);
                 }
             }
-
-            _dbContext.StockReservations.RemoveRange(reservations);
-            await _dbContext.SaveChangesAsync();
-            _logger.LogInformation("Stock reservations released for OrderId: {OrderId}", message.OrderId);
         }
+
+        await _dbContext.SaveChangesAsync();
+        _logger.LogInformation("Stock reservations released for OrderId: {OrderId}", message.OrderId);
     }
 }
