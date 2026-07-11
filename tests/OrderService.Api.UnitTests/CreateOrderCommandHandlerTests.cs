@@ -21,7 +21,8 @@ namespace OrderService.Api.UnitTests;
 public class CreateOrderCommandHandlerTests : IDisposable
 {
     private readonly OrderDbContext _dbContext;
-    private readonly IPublishEndpoint _publishEndpoint;
+    private readonly ISendEndpointProvider _sendEndpointProvider;
+    private readonly ISendEndpoint _sendEndpoint;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly OrderMetrics _metrics;
     private readonly IMeterFactory _meterFactory;
@@ -34,7 +35,10 @@ public class CreateOrderCommandHandlerTests : IDisposable
             .Options;
         _dbContext = new OrderDbContext(options);
 
-        _publishEndpoint = Substitute.For<IPublishEndpoint>();
+        _sendEndpointProvider = Substitute.For<ISendEndpointProvider>();
+        _sendEndpoint = Substitute.For<ISendEndpoint>();
+        _sendEndpointProvider.GetSendEndpoint(Arg.Any<Uri>()).Returns(_sendEndpoint);
+        
         _logger = Substitute.For<ILogger<CreateOrderCommandHandler>>();
 
         _meterFactory = Substitute.For<IMeterFactory>();
@@ -42,7 +46,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
         _meterFactory.Create(Arg.Any<MeterOptions>()).Returns(meter);
         _metrics = new OrderMetrics(_meterFactory);
 
-        _handler = new CreateOrderCommandHandler(_dbContext, _publishEndpoint, _logger, _metrics);
+        _handler = new CreateOrderCommandHandler(_dbContext, _sendEndpointProvider, _logger, _metrics);
     }
 
     [Fact]
@@ -75,7 +79,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
         Assert.Equal(OrderStatus.Pending, order.Status);
         Assert.Equal(2, order.Items.Count);
 
-        await _publishEndpoint.Received(1).Publish(
+        await _sendEndpoint.Received(1).Send(
             Arg.Is<OrderCreatedEvent>(e =>
                 e.OrderId == result &&
                 e.CustomerId == command.CustomerId &&
@@ -124,7 +128,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
         Assert.Equal(1, totalOrders); // No new order inserted
 
         // Event should not be published again
-        await _publishEndpoint.DidNotReceive().Publish(
+        await _sendEndpoint.DidNotReceive().Send(
             Arg.Any<OrderCreatedEvent>(),
             Arg.Any<CancellationToken>()
         );
@@ -146,7 +150,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        await _publishEndpoint.Received(1).Publish(
+        await _sendEndpoint.Received(1).Send(
             Arg.Is<OrderCreatedEvent>(e =>
                 e.OrderId == result &&
                 e.IsVip == true &&

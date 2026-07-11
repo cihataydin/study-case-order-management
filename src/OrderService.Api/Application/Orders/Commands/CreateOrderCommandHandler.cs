@@ -17,14 +17,14 @@ namespace OrderService.Api.Application.Orders.Commands;
 public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Guid>
 {
     private readonly OrderDbContext _dbContext;
-    private readonly IPublishEndpoint _publishEndpoint;
+    private readonly ISendEndpointProvider _sendEndpointProvider;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly OrderMetrics _metrics;
 
-    public CreateOrderCommandHandler(OrderDbContext dbContext, IPublishEndpoint publishEndpoint, ILogger<CreateOrderCommandHandler> logger, OrderMetrics metrics)
+    public CreateOrderCommandHandler(OrderDbContext dbContext, ISendEndpointProvider sendEndpointProvider, ILogger<CreateOrderCommandHandler> logger, OrderMetrics metrics)
     {
         _dbContext = dbContext;
-        _publishEndpoint = publishEndpoint;
+        _sendEndpointProvider = sendEndpointProvider;
         _logger = logger;
         _metrics = metrics;
     }
@@ -77,7 +77,9 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             request.PaymentMethod
         );
 
-        await _publishEndpoint.Publish(orderCreatedEvent, cancellationToken);
+        var queueName = request.IsVip ? "queue:vip-orders-queue" : "queue:standard-orders-queue";
+        var sendEndpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri(queueName));
+        await sendEndpoint.Send(orderCreatedEvent, cancellationToken);
 
         _metrics.OrderCreated();
 
