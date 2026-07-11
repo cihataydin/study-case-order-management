@@ -63,6 +63,8 @@ builder.Services.AddOpenTelemetry()
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderService.Api.Application.Mapping.OrderMappingProfile>());
+
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddMassTransit(x =>
