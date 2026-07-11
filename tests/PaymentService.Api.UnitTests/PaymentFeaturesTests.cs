@@ -121,16 +121,21 @@ public class PaymentFeaturesTests : IDisposable
     }
 
     [Theory]
-    [InlineData("1234567812345678", true)] // 16 digits
-    [InlineData("12345678", false)] // 8 digits
-    [InlineData("", false)]
-    public async Task ValidatePaymentMethod_ShouldValidateCardLength(string cardNumber, bool expected)
+    [InlineData("CreditCard", "1234567812345678", true)] // 16 digits
+    [InlineData("CreditCard", "12345678", false)] // 8 digits
+    [InlineData("Wallet", "user_123", true)] // any string
+    [InlineData("Wallet", "", false)] // empty string
+    [InlineData("BankTransfer", "TR123456789012345678901234", true)] // 26 chars starting with TR
+    [InlineData("BankTransfer", "TR123", false)] // invalid length
+    [InlineData("BankTransfer", "EN123456789012345678901234", false)] // invalid start
+    [InlineData("UnknownMethod", "123", false)]
+    public async Task ValidatePaymentMethod_ShouldValidateBasedOnMethod(string method, string identifier, bool expected)
     {
         // Arrange
         var handler = new ValidatePaymentMethodCommandHandler();
 
         // Act
-        var result = await handler.Handle(new ValidatePaymentMethodCommand("CreditCard", cardNumber), CancellationToken.None);
+        var result = await handler.Handle(new ValidatePaymentMethodCommand(method, identifier), CancellationToken.None);
 
         // Assert
         Assert.Equal(expected, result);

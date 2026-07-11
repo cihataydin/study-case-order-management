@@ -40,13 +40,21 @@ public class ProcessRefundCommandHandler : IRequestHandler<ProcessRefundCommand,
     }
 }
 
-public record ValidatePaymentMethodCommand(string Method, string CardNumber) : IRequest<bool>;
+public record ValidatePaymentMethodCommand(string Method, string Identifier) : IRequest<bool>;
 public class ValidatePaymentMethodCommandHandler : IRequestHandler<ValidatePaymentMethodCommand, bool>
 {
     public Task<bool> Handle(ValidatePaymentMethodCommand request, CancellationToken cancellationToken)
     {
-        // Simple mock rule: CardNumber must be 16 digits
-        return Task.FromResult(request.CardNumber?.Length == 16);
+        // Case Study Requirement: "Multiple payment methods support (Credit Card, Wallet, Bank Transfer)"
+        bool isValid = request.Method switch
+        {
+            "CreditCard" => request.Identifier?.Length == 16, // Mock: Card must be 16 digits
+            "Wallet" => !string.IsNullOrEmpty(request.Identifier), // Mock: Just checking if wallet ID exists
+            "BankTransfer" => request.Identifier?.Length == 26 && request.Identifier.StartsWith("TR"), // Mock: Simple IBAN validation
+            _ => false
+        };
+
+        return Task.FromResult(isValid);
     }
 }
 
