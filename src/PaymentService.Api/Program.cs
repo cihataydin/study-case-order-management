@@ -29,6 +29,8 @@ builder.Services.AddDbContextPool<PaymentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
+builder.Services.AddHostedService<PaymentService.Api.BackgroundServices.RefundProcessingWorker>();
+
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
     .WithTracing(tracing =>

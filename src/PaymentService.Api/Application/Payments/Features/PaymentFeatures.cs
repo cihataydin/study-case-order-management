@@ -30,8 +30,11 @@ public class ProcessRefundCommandHandler : IRequestHandler<ProcessRefundCommand,
         var payment = await _dbContext.Payments.FirstOrDefaultAsync(p => p.Id == request.PaymentId, cancellationToken);
         if (payment == null || payment.Status != PaymentStatus.Success) return false;
         
-        await Task.Delay(1000, cancellationToken); // Simulation of refund delay
-        payment.Status = PaymentStatus.Reversed;
+        // Removed Task.Delay(1000) simulation.
+        // In a real system, the refund takes 3-5 days. We set the status to RefundPending,
+        // and a BackgroundWorker (RefundProcessingWorker) will process it asynchronously later.
+        payment.Status = PaymentStatus.RefundPending;
+        payment.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
         return true;
     }

@@ -63,7 +63,7 @@ public class PaymentFeaturesTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessRefund_WithSuccessfulPayment_ShouldUpdateToReversed()
+    public async Task ProcessRefund_WithSuccessfulPayment_ShouldUpdateToRefundPending()
     {
         // Arrange
         var paymentId = Guid.NewGuid();
@@ -88,13 +88,14 @@ public class PaymentFeaturesTests : IDisposable
 
         var updatedPayment = await _dbContext.Payments.FindAsync(paymentId);
         Assert.NotNull(updatedPayment);
-        Assert.Equal(PaymentStatus.Reversed, updatedPayment.Status);
+        Assert.Equal(PaymentStatus.RefundPending, updatedPayment.Status);
     }
 
     [Theory]
     [InlineData(PaymentStatus.Pending)]
     [InlineData(PaymentStatus.Failed)]
     [InlineData(PaymentStatus.Reversed)]
+    [InlineData(PaymentStatus.RefundPending)]
     public async Task ProcessRefund_WithNonSuccessfulPayment_ShouldReturnFalse(PaymentStatus status)
     {
         // Arrange
