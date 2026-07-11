@@ -8,5 +8,7 @@ public class Product
 
     public int TotalStock { get; set; }
     
+    public decimal Price { get; set; }
+    
     public byte[] Version { get; set; } = null!;
 }

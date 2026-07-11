@@ -17,6 +17,7 @@ public class InventoryDbContext : DbContext
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
             entity.Property(e => e.Version).IsRowVersion();
         });
 
