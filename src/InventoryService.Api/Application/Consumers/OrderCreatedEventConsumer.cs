@@ -54,12 +54,10 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
             }
 
             // Cannot reserve more than 50% of available stock per order
-            var maxAllowedReservation = product.TotalStock / 2;
-            if (item.Quantity > maxAllowedReservation && product.TotalStock > 1) 
+            var maxAllowedReservation = (int)Math.Ceiling(product.TotalStock * 0.5m);
+            if (item.Quantity > maxAllowedReservation) 
             {
-                // If total stock is 1, maxAllowed is 0, so we might need a specific rule, but we will follow exactly "50% of available".
-                // Let's refine: item.Quantity > product.TotalStock * 0.5m
-                _logger.LogWarning("Cannot reserve more than 50% of available stock for Product {ProductId}", item.ProductId);
+                _logger.LogWarning("Cannot reserve more than 50% of available stock for Product {ProductId}. Requested: {Requested}, Max Allowed: {MaxAllowed}", item.ProductId, item.Quantity, maxAllowedReservation);
                 await context.Publish(new StockReleasedEvent(message.OrderId, $"Cannot reserve more than 50% of stock for product {item.ProductId}"));
                 return;
             }
