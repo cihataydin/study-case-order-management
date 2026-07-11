@@ -1,20 +1,38 @@
 groups:
 - name: ecommerce_alerts
   rules:
-  - alert: HighErrorRate
-    expr: rate(orders_failed_count[5m]) > 0.05
+  - alert: HighApiErrorRate
+    expr: sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m])) / sum(rate(http_server_request_duration_seconds_count[5m])) > 0.05
     for: 1m
     labels:
       severity: critical
     annotations:
-      summary: "High Order Failure Rate"
-      description: "Order failure rate has exceeded 5% in the last 5 minutes."
+      summary: "High API Error Rate (> 5%)"
+      description: "API 500 hataları son 5 dakika içinde %5 sınırını aştı."
 
-  - alert: LowOrderSuccess
-    expr: rate(orders_success_count[1m]) == 0
-    for: 5m
+  - alert: HighApiResponseTime
+    expr: histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket[1m])) by (le)) > 0.5
+    for: 1m
     labels:
       severity: warning
     annotations:
-      summary: "No successful orders"
-      description: "There have been no successful orders in the last 5 minutes. Check payment and inventory services."
+      summary: "High API Response Time (p99 > 500ms)"
+      description: "API p99 yanıt süresi 500ms'yi aştı."
+
+  - alert: ZeroSuccessfulOrders
+    expr: rate(orders_success_count[1m]) == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Sıfır Başarılı Sipariş"
+      description: "Son 1 dakika içerisinde başarılı sipariş sayısı sıfıra düştü. Payment veya Inventory servisi çökmüş olabilir."
+
+  - alert: LowStockAlert
+    expr: rate(inventory_low_stock_alerts_total[1m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Düşük Stok Uyarısı (Stock < 10)"
+      description: "Bir veya daha fazla ürünün stoğu 10'un altına düştü."

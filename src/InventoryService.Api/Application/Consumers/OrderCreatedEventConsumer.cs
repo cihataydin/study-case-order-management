@@ -16,12 +16,14 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
     private readonly InventoryDbContext _dbContext;
     private readonly ILogger<OrderCreatedEventConsumer> _logger;
     private readonly IDistributedCache _cache;
+    private readonly Application.Metrics.InventoryMetrics _metrics;
 
-    public OrderCreatedEventConsumer(InventoryDbContext dbContext, ILogger<OrderCreatedEventConsumer> logger, IDistributedCache cache)
+    public OrderCreatedEventConsumer(InventoryDbContext dbContext, ILogger<OrderCreatedEventConsumer> logger, IDistributedCache cache, Application.Metrics.InventoryMetrics metrics)
     {
         _dbContext = dbContext;
         _logger = logger;
         _cache = cache;
+        _metrics = metrics;
     }
 
     public async Task Consume(ConsumeContext<OrderCreatedEvent> context)
@@ -88,7 +90,7 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
             if (product.TotalStock < 10)
             {
                 _logger.LogWarning("LOW STOCK ALERT: Product {ProductId} has only {Stock} remaining!", product.Id, product.TotalStock);
-                // In a real system, publish a LowStockEvent here.
+                _metrics.RecordLowStockAlert();
             }
 
             var reservation = new StockReservation

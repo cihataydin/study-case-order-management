@@ -30,6 +30,9 @@ builder.Services.AddDbContextPool<InventoryDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
+builder.Services.AddSingleton<InventoryService.Api.Application.Metrics.InventoryMetrics>();
+
+
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
     .WithTracing(tracing =>
@@ -46,6 +49,7 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics =>
     {
         metrics
+            .AddMeter(InventoryService.Api.Application.Metrics.InventoryMetrics.MeterName)
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddPrometheusExporter();
