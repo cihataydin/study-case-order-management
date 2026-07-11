@@ -63,5 +63,38 @@ public class OrdersController : ControllerBase
         return BadRequest(new { Message = "Could not retry order. It must exist and be in Cancelled status." });
     }
 
+    // Architectural Note: The API specifications in the case document did not define endpoints
+    // for SHIPPED and DELIVERED state transitions. However, since the Order Service requirements
+    // explicitly mandate managing these states, the /ship and /deliver endpoints have been added 
+    // proactively for Admin/Mock purposes to properly simulate and test the complete state machine.
 
+    [HttpPut("{orderId:guid}/ship")]
+    public async Task<IActionResult> ShipOrder(Guid orderId)
+    {
+        try 
+        {
+            var result = await _mediator.Send(new Application.Orders.Commands.ShipOrderCommand(orderId));
+            if (!result) return BadRequest(new { Message = "Order could not be shipped. It may not exist." });
+            return Ok(new { Message = "Order shipped successfully." });
+        }
+        catch(InvalidOperationException ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [HttpPut("{orderId:guid}/deliver")]
+    public async Task<IActionResult> DeliverOrder(Guid orderId)
+    {
+        try 
+        {
+            var result = await _mediator.Send(new Application.Orders.Commands.DeliverOrderCommand(orderId));
+            if (!result) return BadRequest(new { Message = "Order could not be delivered. It may not exist." });
+            return Ok(new { Message = "Order delivered successfully." });
+        }
+        catch(InvalidOperationException ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
 }

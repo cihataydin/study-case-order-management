@@ -20,3 +20,5 @@ public record OrderConfirmedEvent(Guid OrderId);
 public record OrderCancelledEvent(Guid OrderId, string Reason);
 
 public record OrderShippedEvent(Guid OrderId);
+
+public record OrderDeliveredEvent(Guid OrderId);
