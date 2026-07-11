@@ -88,7 +88,11 @@ builder.Services.AddMassTransit(x =>
 
         cfg.ReceiveEndpoint("orders-queue", e =>
         {
-            e.EnablePriority(10);
+            e.ConfigureConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>(context);
+        });
+
+        cfg.ReceiveEndpoint("vip-orders-queue", e =>
+        {
             e.ConfigureConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>(context);
         });
 

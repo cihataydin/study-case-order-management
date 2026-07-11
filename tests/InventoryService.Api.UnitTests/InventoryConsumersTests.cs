@@ -59,7 +59,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!);
 
         // Act
         await consumer.Consume(context);
@@ -100,7 +100,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!);
 
         // Act
         await consumer.Consume(context);
@@ -141,7 +141,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!);
 
         // Act
         await consumer.Consume(context);
@@ -173,7 +173,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!);
 
         // Act
         await consumer.Consume(context);

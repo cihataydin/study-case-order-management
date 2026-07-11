@@ -30,13 +30,12 @@ public class OrderCancelledEventConsumer : IConsumer<OrderCancelledEvent>
 
         if (payment != null && payment.Status == PaymentStatus.Success)
         {
-            _logger.LogInformation("Simulating refund process (3-5 business days) for OrderId: {OrderId} amount: {Amount}", message.OrderId, payment.Amount);
-            await Task.Delay(1000); // Refund simulation delay
-
-            payment.Status = PaymentStatus.Reversed;
+            _logger.LogInformation("Initiating refund process for OrderId: {OrderId} amount: {Amount}", message.OrderId, payment.Amount);
+            payment.Status = PaymentStatus.RefundPending;
+            payment.UpdatedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Payment reversed for OrderId: {OrderId}", message.OrderId);
+            _logger.LogInformation("Payment marked for refund (RefundPending) for OrderId: {OrderId}", message.OrderId);
         }
     }
 }

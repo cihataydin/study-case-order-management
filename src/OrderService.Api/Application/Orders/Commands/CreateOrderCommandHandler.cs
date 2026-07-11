@@ -77,16 +77,10 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             request.PaymentMethod
         );
 
-        var queueName = "queue:orders-queue";
+        var queueName = request.IsVip ? "queue:vip-orders-queue" : "queue:orders-queue";
         var sendEndpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri(queueName));
         
-        await sendEndpoint.Send(orderCreatedEvent, ctx => 
-        {
-            if (request.IsVip)
-            {
-                ctx.SetPriority(10); // Highest priority for VIP
-            }
-        }, cancellationToken);
+        await sendEndpoint.Send(orderCreatedEvent, cancellationToken);
 
         _metrics.OrderCreated();
 
