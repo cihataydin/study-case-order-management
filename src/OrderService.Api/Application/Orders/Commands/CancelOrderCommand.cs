@@ -42,9 +42,9 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
             throw new InvalidOperationException("Order cannot be cancelled after 2 hours.");
         }
 
-        if (order.Status == OrderStatus.Cancelled || order.Status == OrderStatus.Delivered)
+        if (order.Status == OrderStatus.Cancelled || order.Status == OrderStatus.Delivered || order.Status == OrderStatus.Shipped)
         {
-            _logger.LogWarning("Order {OrderId} is already in {Status} status.", request.OrderId, order.Status);
+            _logger.LogWarning("Order {OrderId} cannot be cancelled because it is in {Status} status.", request.OrderId, order.Status);
             return false;
         }
 

@@ -31,13 +31,19 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
         var message = context.Message;
         _logger.LogInformation("Processing OrderCreatedEvent for OrderId: {OrderId}", message.OrderId);
 
-        // Fetch products that are requested in the order
-        var productIds = message.Items.Select(i => i.ProductId).ToList();
+        var groupedItems = message.Items
+            .GroupBy(i => i.ProductId)
+            .Select(g => new { ProductId = g.Key, Quantity = g.Sum(i => i.Quantity) })
+            .ToList();
+
+        var productIds = groupedItems.Select(i => i.ProductId).ToList();
         var products = await _dbContext.Products
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id);
 
-        foreach (var item in message.Items)
+        var flashSaleUpdates = new System.Collections.Generic.Dictionary<string, int>();
+
+        foreach (var item in groupedItems)
         {
             if (!products.TryGetValue(item.ProductId, out var product))
             {
@@ -80,8 +86,8 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
                         return;
                     }
                     
-                    // Track the new purchase (set expiration for 30 days as a mock)
-                    await _cache.SetStringAsync(cacheKey, (previousPurchases + item.Quantity).ToString(), new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) });
+                    // Defer cache update until DB commit
+                    flashSaleUpdates[cacheKey] = previousPurchases + item.Quantity;
                 }
                 catch (Exception ex)
                 {
@@ -114,6 +120,13 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
         try
         {
             await _dbContext.SaveChangesAsync();
+
+            // Apply flash sale cache updates only if DB save succeeds
+            foreach (var kvp in flashSaleUpdates)
+            {
+                await _cache.SetStringAsync(kvp.Key, kvp.Value.ToString(), new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) });
+            }
+
             _logger.LogInformation("Stock reserved successfully for OrderId: {OrderId}", message.OrderId);
             await context.Publish(new StockReservedEvent(message.OrderId, message.TotalAmount, message.PaymentMethod));
         }
