@@ -42,22 +42,46 @@ public class GetProductStockQueryHandler : IRequestHandler<GetProductStockQuery,
 }
 
 public record CheckAvailabilityDto(Guid ProductId, int Quantity);
-public record CheckAvailabilityQuery(List<CheckAvailabilityDto> Items) : IRequest<bool>;
-public class CheckAvailabilityQueryHandler : IRequestHandler<CheckAvailabilityQuery, bool>
+public record ProductAvailabilityResultDto(Guid ProductId, int RequestedQuantity, bool IsAvailable, int AvailableQuantity);
+public record CheckAvailabilityResponseDto(bool IsAllAvailable, List<ProductAvailabilityResultDto> Items);
+
+public record CheckAvailabilityQuery(List<CheckAvailabilityDto> Items) : IRequest<CheckAvailabilityResponseDto>;
+public class CheckAvailabilityQueryHandler : IRequestHandler<CheckAvailabilityQuery, CheckAvailabilityResponseDto>
 {
     private readonly InventoryDbContext _dbContext;
     public CheckAvailabilityQueryHandler(InventoryDbContext dbContext) => _dbContext = dbContext;
-    public async Task<bool> Handle(CheckAvailabilityQuery request, CancellationToken cancellationToken)
+    public async Task<CheckAvailabilityResponseDto> Handle(CheckAvailabilityQuery request, CancellationToken cancellationToken)
     {
         var productIds = request.Items.Select(x => x.ProductId).ToList();
         var products = await _dbContext.Products.AsNoTracking().Where(p => productIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, cancellationToken);
 
+        var resultItems = new List<ProductAvailabilityResultDto>();
+        bool isAllAvailable = true;
+
         foreach(var item in request.Items)
         {
-            if(!products.TryGetValue(item.ProductId, out var p) || p.TotalStock < item.Quantity)
-                return false;
+            int availableQuantity = 0;
+            bool isAvailable = false;
+
+            if(products.TryGetValue(item.ProductId, out var p))
+            {
+                availableQuantity = p.TotalStock;
+                isAvailable = p.TotalStock >= item.Quantity;
+            }
+
+            if (!isAvailable)
+            {
+                isAllAvailable = false;
+            }
+
+            resultItems.Add(new ProductAvailabilityResultDto(
+                item.ProductId, 
+                item.Quantity, 
+                isAvailable, 
+                availableQuantity));
         }
-        return true;
+        
+        return new CheckAvailabilityResponseDto(isAllAvailable, resultItems);
     }
 }
 

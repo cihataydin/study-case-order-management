@@ -8,7 +8,8 @@ using OrderService.Api.Application.Orders.Queries;
 namespace OrderService.Api.Controllers.v1;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/orders")]
+[Tags("orders")]
 public class OrdersController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -63,7 +64,7 @@ public class OrdersController : ControllerBase
         if (result)
             return Ok(new { Message = "Order retry initiated." });
             
-        return BadRequest(new { Message = "Could not retry order. It must exist and be in Cancelled status." });
+        return BadRequest(new { Message = $"Order {orderId} is not Failed. Only failed orders can be retried." });
     }
 
     // Architectural Note: The API specifications in the case document did not define endpoints

@@ -6,7 +6,8 @@ using InventoryService.Api.Application.Inventory.Features;
 namespace InventoryService.Api.Controllers.v1;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/inventory")]
+[Tags("inventory")]
 public class InventoryController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -19,7 +20,7 @@ public class InventoryController : ControllerBase
     public async Task<IActionResult> CheckAvailability([FromBody] CheckAvailabilityQuery request)
     {
         var result = await _mediator.Send(request);
-        return Ok(new { IsAvailable = result });
+        return Ok(result);
     }
 
     [HttpPost("reserve")]

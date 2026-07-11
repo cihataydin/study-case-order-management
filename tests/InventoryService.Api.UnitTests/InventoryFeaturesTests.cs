@@ -97,7 +97,9 @@ public class InventoryFeaturesTests : IDisposable
         var result = await handler.Handle(query, CancellationToken.None);
 
         // Assert
-        Assert.True(result);
+        Assert.True(result.IsAllAvailable);
+        Assert.Equal(2, result.Items.Count);
+        Assert.All(result.Items, item => Assert.True(item.IsAvailable));
     }
 
     [Fact]
@@ -119,7 +121,11 @@ public class InventoryFeaturesTests : IDisposable
         var result = await handler.Handle(query, CancellationToken.None);
 
         // Assert
-        Assert.False(result);
+        Assert.False(result.IsAllAvailable);
+        Assert.Single(result.Items);
+        var itemResult = result.Items.First();
+        Assert.False(itemResult.IsAvailable);
+        Assert.Equal(10, itemResult.AvailableQuantity);
     }
 
     [Fact]
