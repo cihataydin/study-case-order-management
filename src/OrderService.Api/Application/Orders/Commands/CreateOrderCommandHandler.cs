@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using MediatR;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -48,7 +49,6 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             return existingOrder.Id;
         }
 
-        // Fetch prices from Inventory via gRPC
         var grpcRequest = new GetProductPricesRequest();
         grpcRequest.ProductIds.AddRange(request.Items.Select(i => i.ProductId.ToString()));
 
@@ -60,7 +60,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
         );
 
         decimal totalAmount = 0;
-        var orderItems = new System.Collections.Generic.List<OrderItem>();
+        var orderItems = new List<OrderItem>();
 
         foreach (var item in request.Items)
         {
@@ -69,13 +69,13 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
                 throw new Exception($"Product {item.ProductId} not found in inventory!");
             }
 
-            totalAmount += (item.Quantity * currentPrice);
+            totalAmount += item.Quantity * currentPrice;
             
             orderItems.Add(new OrderItem
             {
                 ProductId = item.ProductId,
                 Quantity = item.Quantity,
-                UnitPrice = currentPrice // Use the actual price from Inventory!
+                UnitPrice = currentPrice
             });
         }
 
