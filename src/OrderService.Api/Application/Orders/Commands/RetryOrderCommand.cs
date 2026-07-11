@@ -35,9 +35,9 @@ public class RetryOrderCommandHandler : IRequestHandler<RetryOrderCommand, bool>
 
         if (order == null) return false;
 
-        if (order.Status != OrderStatus.Cancelled)
+        if (order.Status != OrderStatus.Failed)
         {
-            _logger.LogWarning("Order {OrderId} is not Cancelled. Only cancelled orders can be retried.", request.OrderId);
+            _logger.LogWarning("Order {OrderId} is not Failed. Only failed orders can be retried.", request.OrderId);
             return false;
         }
 

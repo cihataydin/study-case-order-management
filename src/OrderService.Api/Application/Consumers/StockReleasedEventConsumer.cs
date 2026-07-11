@@ -31,10 +31,10 @@ public class StockReleasedEventConsumer : IConsumer<StockReleasedEvent>
         var order = await _dbContext.Orders.FirstOrDefaultAsync(o => o.Id == message.OrderId);
         if (order != null)
         {
-            order.Status = OrderStatus.Cancelled;
+            order.Status = OrderStatus.Failed;
             order.UpdatedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
-            _logger.LogInformation("Order {OrderId} cancelled due to stock reservation failure or release.", message.OrderId);
+            _logger.LogInformation("Order {OrderId} marked as Failed due to stock reservation failure or release.", message.OrderId);
             
             _metrics.OrderFailed();
 

@@ -40,7 +40,7 @@ public class StockReleasedEventConsumerTests : IDisposable
     }
 
     [Fact]
-    public async Task Consume_WithValidOrder_ShouldCancelOrderAndPublishCancelledEvent()
+    public async Task Consume_WithValidOrder_ShouldFailOrderAndPublishCancelledEvent()
     {
         // Arrange
         var orderId = Guid.NewGuid();
@@ -66,7 +66,7 @@ public class StockReleasedEventConsumerTests : IDisposable
         // Assert
         var updatedOrder = await _dbContext.Orders.FindAsync(orderId);
         Assert.NotNull(updatedOrder);
-        Assert.Equal(OrderStatus.Cancelled, updatedOrder.Status);
+        Assert.Equal(OrderStatus.Failed, updatedOrder.Status);
 
         await context.Received(1).Publish(
             Arg.Is<OrderCancelledEvent>(e => e.OrderId == orderId && e.Reason == reason),

@@ -64,6 +64,7 @@ builder.Services.AddMassTransit(x =>
     x.AddConsumer<OrderService.Api.Application.Consumers.PaymentProcessedEventConsumer>();
     x.AddConsumer<OrderService.Api.Application.Consumers.PaymentFailedEventConsumer>();
     x.AddConsumer<OrderService.Api.Application.Consumers.StockReleasedEventConsumer>();
+    x.AddConsumer<OrderService.Api.Application.Consumers.OrderCreatedEventFaultConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {

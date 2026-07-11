@@ -37,7 +37,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_WithCancelledOrder_ShouldResetToPendingAndPublishCreatedEvent()
+    public async Task Handle_WithFailedOrder_ShouldResetToPendingAndPublishCreatedEvent()
     {
         // Arrange
         var orderId = Guid.NewGuid();
@@ -47,7 +47,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = "retry-key",
             TotalAmount = 250.00m,
-            Status = OrderStatus.Cancelled,
+            Status = OrderStatus.Failed,
             Items = new List<OrderItem>
             {
                 new() { ProductId = Guid.NewGuid(), Quantity = 2, UnitPrice = 125.00m }
@@ -100,7 +100,8 @@ public class RetryOrderCommandHandlerTests : IDisposable
     [InlineData(OrderStatus.Confirmed)]
     [InlineData(OrderStatus.Shipped)]
     [InlineData(OrderStatus.Delivered)]
-    public async Task Handle_WithNonCancelledOrder_ShouldReturnFalse(OrderStatus status)
+    [InlineData(OrderStatus.Cancelled)]
+    public async Task Handle_WithNonFailedOrder_ShouldReturnFalse(OrderStatus status)
     {
         // Arrange
         var orderId = Guid.NewGuid();
