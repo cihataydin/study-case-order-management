@@ -58,16 +58,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
         };
 
         _dbContext.Orders.Add(order);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Order {OrderId} created successfully. Publishing OrderCreatedEvent.", order.Id);
-
-        if (request.IsVip)
-        {
-            _logger.LogInformation("VIP Order detected! Priority processing for OrderId: {OrderId}", order.Id);
-            // In a real system, you could publish to a high-priority queue here.
-        }
-
+        
         var orderCreatedEvent = new OrderCreatedEvent(
             order.Id,
             order.CustomerId,
@@ -81,6 +72,9 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
         var sendEndpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri(queueName));
         
         await sendEndpoint.Send(orderCreatedEvent, cancellationToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Order {OrderId} created and event saved to Outbox.", order.Id);
 
         _metrics.OrderCreated();
 

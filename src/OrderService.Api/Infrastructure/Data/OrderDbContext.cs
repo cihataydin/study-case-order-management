@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OrderService.Api.Domain.Entities;
+using MassTransit;
 
 namespace OrderService.Api.Infrastructure.Data;
 
@@ -33,5 +34,9 @@ public class OrderDbContext : DbContext
         });
         
         base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
     }
 }

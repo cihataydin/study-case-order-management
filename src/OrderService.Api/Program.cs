@@ -66,6 +66,12 @@ builder.Services.AddMassTransit(x =>
     x.AddConsumer<OrderService.Api.Application.Consumers.StockReleasedEventConsumer>();
     x.AddConsumer<OrderService.Api.Application.Consumers.OrderCreatedEventFaultConsumer>();
 
+    x.AddEntityFrameworkOutbox<OrderDbContext>(o =>
+    {
+        o.UsePostgres();
+        o.UseBusOutbox();
+    });
+
     x.UsingRabbitMq((context, cfg) =>
     {
         var rabbitHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
