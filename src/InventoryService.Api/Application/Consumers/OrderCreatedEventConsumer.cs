@@ -5,6 +5,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using InventoryService.Api.Domain.Entities;
+using Microsoft.Extensions.Caching.Distributed;
 using InventoryService.Api.Infrastructure.Data;
 using Shared.Events;
 
@@ -14,11 +15,13 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
 {
     private readonly InventoryDbContext _dbContext;
     private readonly ILogger<OrderCreatedEventConsumer> _logger;
+    private readonly IDistributedCache _cache;
 
-    public OrderCreatedEventConsumer(InventoryDbContext dbContext, ILogger<OrderCreatedEventConsumer> logger)
+    public OrderCreatedEventConsumer(InventoryDbContext dbContext, ILogger<OrderCreatedEventConsumer> logger, IDistributedCache cache)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task Consume(ConsumeContext<OrderCreatedEvent> context)
@@ -62,11 +65,21 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
             // Fake Flash Sale Check (for the sake of the rule, let's assume any product with TotalStock > 1000 is a flash sale item)
             // Or ideally it should be a flag on the entity. Let's assume there's a convention.
             bool isFlashSale = product.Name.Contains("Flash"); // simplistic mock
-            if (isFlashSale && item.Quantity > 2)
+            if (isFlashSale)
             {
-                _logger.LogWarning("Flash sale items limited to max 2 per customer. ProductId: {ProductId}", item.ProductId);
-                await context.Publish(new StockReleasedEvent(message.OrderId, $"Flash sale limit exceeded for product {item.ProductId}"));
-                return;
+                var cacheKey = $"FlashSale_{message.CustomerId}_{item.ProductId}";
+                var previousPurchasesStr = await _cache.GetStringAsync(cacheKey);
+                int previousPurchases = string.IsNullOrEmpty(previousPurchasesStr) ? 0 : int.Parse(previousPurchasesStr);
+
+                if (previousPurchases + item.Quantity > 2)
+                {
+                    _logger.LogWarning("Flash sale items limited to max 2 per customer. CustomerId: {CustomerId}, ProductId: {ProductId}", message.CustomerId, item.ProductId);
+                    await context.Publish(new StockReleasedEvent(message.OrderId, $"Flash sale limit exceeded for product {item.ProductId}"));
+                    return;
+                }
+                
+                // Track the new purchase (set expiration for 30 days as a mock)
+                await _cache.SetStringAsync(cacheKey, (previousPurchases + item.Quantity).ToString(), new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30) });
             }
 
             product.TotalStock -= item.Quantity;

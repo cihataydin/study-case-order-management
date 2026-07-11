@@ -11,6 +11,7 @@ using InventoryService.Api.Application.Consumers;
 using InventoryService.Api.Domain.Entities;
 using InventoryService.Api.Infrastructure.Data;
 using Shared.Events;
+using Microsoft.Extensions.Caching.Distributed;
 using Xunit;
 
 namespace InventoryService.Api.UnitTests;
@@ -21,6 +22,7 @@ public class InventoryConsumersTests : IDisposable
     private readonly ILogger<OrderCreatedEventConsumer> _createdLogger;
     private readonly ILogger<OrderCancelledEventConsumer> _cancelledLogger;
     private readonly ILogger<OrderConfirmedEventConsumer> _confirmedLogger;
+    private readonly IDistributedCache _cache;
 
     public InventoryConsumersTests()
     {
@@ -32,6 +34,7 @@ public class InventoryConsumersTests : IDisposable
         _createdLogger = Substitute.For<ILogger<OrderCreatedEventConsumer>>();
         _cancelledLogger = Substitute.For<ILogger<OrderCancelledEventConsumer>>();
         _confirmedLogger = Substitute.For<ILogger<OrderConfirmedEventConsumer>>();
+        _cache = Substitute.For<IDistributedCache>();
     }
 
     [Fact]
@@ -56,7 +59,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache);
 
         // Act
         await consumer.Consume(context);
@@ -97,7 +100,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache);
 
         // Act
         await consumer.Consume(context);
@@ -138,7 +141,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache);
 
         // Act
         await consumer.Consume(context);
@@ -170,7 +173,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache);
 
         // Act
         await consumer.Consume(context);
