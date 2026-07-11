@@ -82,13 +82,9 @@ builder.Services.AddMassTransit(x =>
 
         cfg.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)));
 
-        cfg.ReceiveEndpoint("vip-orders-queue", e =>
+        cfg.ReceiveEndpoint("orders-queue", e =>
         {
-            e.ConfigureConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>(context);
-        });
-
-        cfg.ReceiveEndpoint("standard-orders-queue", e =>
-        {
+            e.EnablePriority(10);
             e.ConfigureConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>(context);
         });
 
