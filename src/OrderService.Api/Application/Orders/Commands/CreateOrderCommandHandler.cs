@@ -11,6 +11,7 @@ using OrderService.Api.Infrastructure.Data;
 using Shared.Events;
 using Microsoft.Extensions.Logging;
 using OrderService.Api.Application.Metrics;
+using Shared.Grpc;
 
 namespace OrderService.Api.Application.Orders.Commands;
 
@@ -20,13 +21,20 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
     private readonly ISendEndpointProvider _sendEndpointProvider;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly OrderMetrics _metrics;
+    private readonly InventoryGrpcService.InventoryGrpcServiceClient _inventoryGrpcClient;
 
-    public CreateOrderCommandHandler(OrderDbContext dbContext, ISendEndpointProvider sendEndpointProvider, ILogger<CreateOrderCommandHandler> logger, OrderMetrics metrics)
+    public CreateOrderCommandHandler(
+        OrderDbContext dbContext, 
+        ISendEndpointProvider sendEndpointProvider, 
+        ILogger<CreateOrderCommandHandler> logger, 
+        OrderMetrics metrics,
+        InventoryGrpcService.InventoryGrpcServiceClient inventoryGrpcClient)
     {
         _dbContext = dbContext;
         _sendEndpointProvider = sendEndpointProvider;
         _logger = logger;
         _metrics = metrics;
+        _inventoryGrpcClient = inventoryGrpcClient;
     }
 
     public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -40,7 +48,36 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             return existingOrder.Id;
         }
 
-        var totalAmount = request.Items.Sum(x => x.Quantity * x.UnitPrice);
+        // Fetch prices from Inventory via gRPC
+        var grpcRequest = new GetProductPricesRequest();
+        grpcRequest.ProductIds.AddRange(request.Items.Select(i => i.ProductId.ToString()));
+
+        var grpcResponse = await _inventoryGrpcClient.GetProductPricesAsync(grpcRequest, cancellationToken: cancellationToken);
+
+        var priceDictionary = grpcResponse.Products.ToDictionary(
+            p => Guid.Parse(p.ProductId), 
+            p => (decimal)p.Price
+        );
+
+        decimal totalAmount = 0;
+        var orderItems = new System.Collections.Generic.List<OrderItem>();
+
+        foreach (var item in request.Items)
+        {
+            if (!priceDictionary.TryGetValue(item.ProductId, out var currentPrice))
+            {
+                throw new Exception($"Product {item.ProductId} not found in inventory!");
+            }
+
+            totalAmount += (item.Quantity * currentPrice);
+            
+            orderItems.Add(new OrderItem
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                UnitPrice = currentPrice // Use the actual price from Inventory!
+            });
+        }
 
         var order = new Order
         {
@@ -50,12 +87,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             Status = OrderStatus.Pending,
             IsVip = request.IsVip,
             PaymentMethod = request.PaymentMethod,
-            Items = request.Items.Select(x => new OrderItem
-            {
-                ProductId = x.ProductId,
-                Quantity = x.Quantity,
-                UnitPrice = x.UnitPrice
-            }).ToList()
+            Items = orderItems
         };
 
         _dbContext.Orders.Add(order);

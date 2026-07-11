@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "Shared.Grpc";
+
+package inventory;
+
+service InventoryGrpcService {
+  rpc GetProductPrices (GetProductPricesRequest) returns (GetProductPricesResponse);
+}
+
+message GetProductPricesRequest {
+  repeated string product_ids = 1;
+}
+
+message ProductPriceItem {
+  string product_id = 1;
+  double price = 2;
+}
+
+message GetProductPricesResponse {
+  repeated ProductPriceItem products = 1;
+}
