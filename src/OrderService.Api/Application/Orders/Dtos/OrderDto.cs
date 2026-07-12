@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using OrderService.Api.Domain.Enums;
+using Shared.Enums;
 
 namespace OrderService.Api.Application.Orders.Dtos;
 
@@ -14,6 +15,6 @@ public class OrderDto
     public DateTime? UpdatedAt { get; set; }
     public string IdempotencyKey { get; set; } = string.Empty;
     public bool IsVip { get; set; }
-    public string PaymentMethod { get; set; } = string.Empty;
+    public PaymentMethod PaymentMethod { get; set; }
     public List<OrderItemDto> Items { get; set; } = new();
 }

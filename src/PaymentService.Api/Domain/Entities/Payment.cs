@@ -1,4 +1,5 @@
 using PaymentService.Api.Domain.Enums;
+using Shared.Enums;
 
 namespace PaymentService.Api.Domain.Entities;
 
@@ -10,7 +11,7 @@ public class Payment
 
     public decimal Amount { get; set; }
 
-    public string Method { get; set; } = string.Empty;
+    public PaymentMethod Method { get; set; }
 
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
     

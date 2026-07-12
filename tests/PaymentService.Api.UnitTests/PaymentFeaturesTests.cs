@@ -9,6 +9,8 @@ using PaymentService.Api.Application.Payments.Dtos;
 using PaymentService.Api.Domain.Entities;
 using PaymentService.Api.Domain.Enums;
 using PaymentService.Api.Infrastructure.Data;
+using PaymentService.Api.Infrastructure.Data;
+using Shared.Enums;
 using Xunit;
 
 namespace PaymentService.Api.UnitTests;
@@ -35,7 +37,7 @@ public class PaymentFeaturesTests : IDisposable
             Id = paymentId,
             OrderId = Guid.NewGuid(),
             Amount = 150.00m,
-            Method = "CreditCard",
+            Method = PaymentMethod.CreditCard,
             Status = PaymentStatus.Success
         };
         _dbContext.Payments.Add(payment);
@@ -81,7 +83,7 @@ public class PaymentFeaturesTests : IDisposable
             Id = paymentId,
             OrderId = Guid.NewGuid(),
             Amount = 200.00m,
-            Method = "Wallet",
+            Method = PaymentMethod.Wallet,
             Status = PaymentStatus.Success
         };
         _dbContext.Payments.Add(payment);
@@ -114,7 +116,7 @@ public class PaymentFeaturesTests : IDisposable
             Id = paymentId,
             OrderId = Guid.NewGuid(),
             Amount = 200.00m,
-            Method = "Wallet",
+            Method = PaymentMethod.Wallet,
             Status = status
         };
         _dbContext.Payments.Add(payment);
@@ -130,15 +132,15 @@ public class PaymentFeaturesTests : IDisposable
     }
 
     [Theory]
-    [InlineData("CreditCard", "1234567812345678", true)] // 16 digits
-    [InlineData("CreditCard", "12345678", false)] // 8 digits
-    [InlineData("Wallet", "user_123", true)] // any string
-    [InlineData("Wallet", "", false)] // empty string
-    [InlineData("BankTransfer", "TR123456789012345678901234", true)] // 26 chars starting with TR
-    [InlineData("BankTransfer", "TR123", false)] // invalid length
-    [InlineData("BankTransfer", "EN123456789012345678901234", false)] // invalid start
-    [InlineData("UnknownMethod", "123", false)]
-    public async Task ValidatePaymentMethod_ShouldValidateBasedOnMethod(string method, string identifier, bool expected)
+    [InlineData(PaymentMethod.CreditCard, "1234567812345678", true)] // 16 digits
+    [InlineData(PaymentMethod.CreditCard, "12345678", false)] // 8 digits
+    [InlineData(PaymentMethod.Wallet, "user_123", true)] // any string
+    [InlineData(PaymentMethod.Wallet, "", false)] // empty string
+    [InlineData(PaymentMethod.BankTransfer, "TR123456789012345678901234", true)] // 26 chars starting with TR
+    [InlineData(PaymentMethod.BankTransfer, "TR123", false)] // invalid length
+    [InlineData(PaymentMethod.BankTransfer, "EN123456789012345678901234", false)] // invalid start
+    [InlineData((PaymentMethod)99, "123", false)]
+    public async Task ValidatePaymentMethod_ShouldValidateBasedOnMethod(PaymentMethod method, string identifier, bool expected)
     {
         // Arrange
         var handler = new ValidatePaymentMethodCommandHandler();
@@ -158,7 +160,7 @@ public class PaymentFeaturesTests : IDisposable
         var handler = new ProcessPaymentCommandHandler(_dbContext);
 
         // Act
-        var result = await handler.Handle(new ProcessPaymentCommand(orderId, 300.00m, "BankTransfer"), CancellationToken.None);
+        var result = await handler.Handle(new ProcessPaymentCommand(orderId, 300.00m, PaymentMethod.BankTransfer), CancellationToken.None);
 
         // Assert
         Assert.True(result);
@@ -166,7 +168,7 @@ public class PaymentFeaturesTests : IDisposable
         var payment = await _dbContext.Payments.FirstOrDefaultAsync(p => p.OrderId == orderId);
         Assert.NotNull(payment);
         Assert.Equal(300.00m, payment.Amount);
-        Assert.Equal("BankTransfer", payment.Method);
+        Assert.Equal(PaymentMethod.BankTransfer, payment.Method);
         Assert.Equal(PaymentStatus.Success, payment.Status);
     }
 

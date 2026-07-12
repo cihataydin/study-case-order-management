@@ -18,9 +18,8 @@ public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
 
 
         RuleFor(x => x.PaymentMethod)
-            .NotEmpty()
-            .Must(m => new[] { "CreditCard", "Wallet", "BankTransfer" }.Contains(m))
-            .WithMessage("Payment method must be CreditCard, Wallet, or BankTransfer.");
+            .IsInEnum()
+            .WithMessage("Invalid payment method.");
 
         RuleForEach(x => x.Items).ChildRules(items =>
         {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using OrderService.Api.Application.Orders.Commands;
 using Shared.Events;
+using Shared.Enums;
 using Xunit;
 
 namespace OrderService.Api.UnitTests;
@@ -25,7 +26,7 @@ public class CreateOrderCommandValidatorTests
             IdempotencyKey: "unique-key",
             Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 2) }, // 200 TL
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         // Act
@@ -44,7 +45,7 @@ public class CreateOrderCommandValidatorTests
             IdempotencyKey: "unique-key",
             Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         // Act
@@ -64,7 +65,7 @@ public class CreateOrderCommandValidatorTests
             IdempotencyKey: string.Empty,
             Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         // Act
@@ -84,7 +85,7 @@ public class CreateOrderCommandValidatorTests
             IdempotencyKey: "unique-key",
             Items: new List<CreateOrderItemDto>(),
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         // Act
@@ -108,7 +109,7 @@ public class CreateOrderCommandValidatorTests
             IdempotencyKey: "unique-key",
             Items: items,
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         // Act
@@ -122,10 +123,9 @@ public class CreateOrderCommandValidatorTests
 
 
     [Theory]
-    [InlineData("Bitcoin")]
-    [InlineData("CashOnDelivery")]
-    [InlineData("")]
-    public void Validate_WithInvalidPaymentMethod_ShouldHaveValidationError(string method)
+    [InlineData((PaymentMethod)99)]
+    [InlineData((PaymentMethod)0)]
+    public void Validate_WithInvalidPaymentMethod_ShouldHaveValidationError(PaymentMethod method)
     {
         // Arrange
         var command = new CreateOrderCommand(
@@ -141,7 +141,7 @@ public class CreateOrderCommandValidatorTests
 
         // Assert
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.ErrorMessage == "Payment method must be CreditCard, Wallet, or BankTransfer.");
+        Assert.Contains(result.Errors, e => e.ErrorMessage == "Invalid payment method.");
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public class CreateOrderCommandValidatorTests
                 new(Guid.NewGuid(), 0) // Zero Quantity
             },
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         // Act

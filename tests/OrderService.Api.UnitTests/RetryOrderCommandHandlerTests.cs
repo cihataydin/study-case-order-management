@@ -12,6 +12,7 @@ using OrderService.Api.Domain.Entities;
 using OrderService.Api.Domain.Enums;
 using OrderService.Api.Infrastructure.Data;
 using Shared.Events;
+using Shared.Enums;
 using Xunit;
 
 namespace OrderService.Api.UnitTests;
@@ -49,7 +50,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
             TotalAmount = 250.00m,
             /* Status = OrderStatus.Failed */
             IsVip = false,
-            PaymentMethod = "CreditCard",
+            PaymentMethod = PaymentMethod.CreditCard,
             Items = new List<OrderItem>
             {
                 new() { ProductId = Guid.NewGuid(), Quantity = 2, UnitPrice = 125.00m }
@@ -76,7 +77,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
                 e.CustomerId == order.CustomerId &&
                 e.TotalAmount == 250.00m &&
                 e.IsVip == false &&
-                e.PaymentMethod == "CreditCard" &&
+                e.PaymentMethod == PaymentMethod.CreditCard &&
                 e.Items.Count == 1
             ),
             Arg.Any<IPipe<PublishContext<OrderCreatedEvent>>>(),

@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 
 namespace Shared.Events;
+using Shared.Enums;
 
 public record OrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice);
 
-public record OrderCreatedEvent(Guid OrderId, Guid CustomerId, decimal TotalAmount, List<OrderItemDto> Items, bool IsVip, string PaymentMethod);
+public record OrderCreatedEvent(Guid OrderId, Guid CustomerId, decimal TotalAmount, List<OrderItemDto> Items, bool IsVip, PaymentMethod PaymentMethod);
 
-public record StockReservedEvent(Guid OrderId, decimal TotalAmount, string PaymentMethod, bool IsVip);
+public record StockReservedEvent(Guid OrderId, decimal TotalAmount, PaymentMethod PaymentMethod, bool IsVip);
 
 public record StockReleasedEvent(Guid OrderId, string Reason, bool IsVip = false);
 

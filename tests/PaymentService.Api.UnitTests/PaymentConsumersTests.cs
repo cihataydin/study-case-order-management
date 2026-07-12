@@ -12,6 +12,7 @@ using PaymentService.Api.Domain.Enums;
 using PaymentService.Api.Infrastructure.Data;
 using Polly;
 using Polly.Retry;
+using Shared.Enums;
 using Shared.Events;
 using Xunit;
 
@@ -62,7 +63,7 @@ public class PaymentConsumersTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var message = new StockReservedEvent(orderId, 150.00m, "CreditCard", false);
+        var message = new StockReservedEvent(orderId, 150.00m, PaymentMethod.CreditCard, false);
         var context = Substitute.For<ConsumeContext<StockReservedEvent>>();
         context.Message.Returns(message);
 
@@ -89,7 +90,7 @@ public class PaymentConsumersTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var message = new StockReservedEvent(orderId, 150.00m, "CreditCard", false);
+        var message = new StockReservedEvent(orderId, 150.00m, PaymentMethod.CreditCard, false);
         var context = Substitute.For<ConsumeContext<StockReservedEvent>>();
         context.Message.Returns(message);
 
@@ -115,7 +116,7 @@ public class PaymentConsumersTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var message = new StockReservedEvent(orderId, 150.00m, "CreditCard", false);
+        var message = new StockReservedEvent(orderId, 150.00m, PaymentMethod.CreditCard, false);
         var context = Substitute.For<ConsumeContext<StockReservedEvent>>();
         context.Message.Returns(message);
 
@@ -150,7 +151,7 @@ public class PaymentConsumersTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var message = new StockReservedEvent(orderId, 15000.00m, "CreditCard", false); // > 10,000
+        var message = new StockReservedEvent(orderId, 15000.00m, PaymentMethod.CreditCard, false); // > 10,000
         var context = Substitute.For<ConsumeContext<StockReservedEvent>>();
         context.Message.Returns(message);
 

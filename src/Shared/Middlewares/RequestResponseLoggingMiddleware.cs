@@ -36,6 +36,12 @@ namespace Shared.Middlewares
         /// </summary>
         public async Task InvokeAsync(HttpContext context)
         {
+            if (context.Request.ContentType?.StartsWith("application/grpc", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                await _next(context);
+                return;
+            }
+
             _useJsonFormat = _configuration.GetValue<bool>("Logging:UseJsonFormat", false);
             await LogRequest(context);
 
@@ -43,12 +49,17 @@ namespace Shared.Middlewares
             using var responseBody = new MemoryStream();
             context.Response.Body = responseBody;
 
-            await _next(context);
-
-            await LogResponse(context);
-
-            await responseBody.CopyToAsync(originalBodyStream);
-            context.Response.Body = originalBodyStream;
+            try
+            {
+                await _next(context);
+                await LogResponse(context);
+            }
+            finally
+            {
+                responseBody.Seek(0, SeekOrigin.Begin);
+                await responseBody.CopyToAsync(originalBodyStream);
+                context.Response.Body = originalBodyStream;
+            }
         }
 
         private async Task LogRequest(HttpContext context)

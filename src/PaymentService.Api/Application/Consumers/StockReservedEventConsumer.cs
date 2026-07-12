@@ -50,7 +50,7 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
         {
             OrderId = message.OrderId,
             Amount = message.TotalAmount,
-            Method = message.PaymentMethod ?? "CreditCard", // Fallback to CreditCard if null
+            Method = message.PaymentMethod,
             Status = PaymentStatus.Pending
         };
 

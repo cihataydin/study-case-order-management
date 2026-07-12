@@ -1,6 +1,7 @@
 using System;
 using MediatR;
+using Shared.Enums;
 
 namespace PaymentService.Api.Application.Payments.Commands;
 
-public record ProcessPaymentCommand(Guid OrderId, decimal Amount, string Method) : IRequest<bool>;
+public record ProcessPaymentCommand(Guid OrderId, decimal Amount, PaymentMethod Method) : IRequest<bool>;

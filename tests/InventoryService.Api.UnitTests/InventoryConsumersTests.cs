@@ -12,6 +12,7 @@ using InventoryService.Api.Domain.Entities;
 using InventoryService.Api.Infrastructure.Data;
 using Shared.Events;
 using Microsoft.Extensions.Caching.Distributed;
+using Shared.Enums;
 using Xunit;
 
 namespace InventoryService.Api.UnitTests;
@@ -59,7 +60,7 @@ public class InventoryConsumersTests : IDisposable
             TotalAmount: 50.00m,
             Items: new List<OrderItemDto> { new(productId, 5, 10.00m) }, // 5 out of 20 = 25% (allowed)
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
@@ -101,7 +102,7 @@ public class InventoryConsumersTests : IDisposable
             TotalAmount: 150.00m,
             Items: new List<OrderItemDto> { new(productId, 15, 10.00m) }, // 15 out of 20 = 75% (violates 50% rule)
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
@@ -143,7 +144,7 @@ public class InventoryConsumersTests : IDisposable
             TotalAmount: 3000.00m,
             Items: new List<OrderItemDto> { new(productId, 3, 1000.00m) }, // 3 violates max 2 per customer for flash sales
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
@@ -178,7 +179,7 @@ public class InventoryConsumersTests : IDisposable
             TotalAmount: 10.00m,
             Items: new List<OrderItemDto> { new(Guid.NewGuid(), 1, 10.00m) }, // Random ProductId
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();

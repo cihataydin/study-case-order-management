@@ -8,6 +8,7 @@ using PaymentService.Api.Infrastructure.Data;
 using PaymentService.Api.Domain.Enums;
 using Shared.Events;
 using PaymentService.Api.Domain.Entities;
+using Shared.Enums;
 
 namespace PaymentService.Api.Application.Consumers;
 
@@ -49,7 +50,7 @@ public class OrderCancelledEventConsumer : IConsumer<OrderCancelledEvent>
             {
                 OrderId = message.OrderId,
                 Amount = 0,
-                Method = "Unknown",
+                Method = PaymentMethod.CreditCard,
                 Status = PaymentStatus.RefundPending, // Or Cancelled
                 UpdatedAt = DateTime.UtcNow
             };

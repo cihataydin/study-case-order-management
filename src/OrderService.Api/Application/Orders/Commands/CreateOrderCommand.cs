@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using MediatR;
+using Shared.Enums;
 
 namespace OrderService.Api.Application.Orders.Commands;
 
@@ -10,12 +11,12 @@ public record CreateOrderRequest(
     Guid CustomerId, 
     List<CreateOrderItemDto> Items,
     bool IsVip,
-    string PaymentMethod);
+    PaymentMethod PaymentMethod);
 
 public record CreateOrderCommand(
     Guid CustomerId, 
     string IdempotencyKey, 
     List<CreateOrderItemDto> Items,
     bool IsVip,
-    string PaymentMethod) : IRequest<Guid>;
+    PaymentMethod PaymentMethod) : IRequest<Guid>;
 

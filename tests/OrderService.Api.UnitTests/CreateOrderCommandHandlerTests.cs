@@ -14,6 +14,7 @@ using OrderService.Api.Domain.Entities;
 using OrderService.Api.Domain.Enums;
 using OrderService.Api.Infrastructure.Data;
 using Shared.Events;
+using Shared.Enums;
 using Xunit;
 
 namespace OrderService.Api.UnitTests;
@@ -79,7 +80,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
                 new(Guid.NewGuid(), 1)
             },
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         // Act
@@ -102,7 +103,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
                 e.CustomerId == command.CustomerId &&
                 e.TotalAmount == 450.00m &&
                 e.IsVip == false &&
-                e.PaymentMethod == "CreditCard" &&
+                e.PaymentMethod == PaymentMethod.CreditCard &&
                 e.Items.Count == 2
             ),
             Arg.Any<IPipe<PublishContext<OrderCreatedEvent>>>(),
@@ -131,7 +132,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
             IdempotencyKey: idempotencyKey,
             Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: false,
-            PaymentMethod: "CreditCard"
+            PaymentMethod: PaymentMethod.CreditCard
         );
 
         // Act & Assert
@@ -158,7 +159,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
             IdempotencyKey: Guid.NewGuid().ToString(),
             Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: true,
-            PaymentMethod: "Wallet"
+            PaymentMethod: PaymentMethod.Wallet
         );
 
         // Act
@@ -169,7 +170,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
             Arg.Is<OrderCreatedEvent>(e =>
                 e.OrderId == result &&
                 e.IsVip == true &&
-                e.PaymentMethod == "Wallet"
+                e.PaymentMethod == PaymentMethod.Wallet
             ),
             Arg.Any<IPipe<PublishContext<OrderCreatedEvent>>>(),
             Arg.Any<CancellationToken>()

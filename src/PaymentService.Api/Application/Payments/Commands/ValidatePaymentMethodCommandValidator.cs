@@ -6,7 +6,7 @@ public class ValidatePaymentMethodCommandValidator : AbstractValidator<ValidateP
 {
     public ValidatePaymentMethodCommandValidator()
     {
-        RuleFor(x => x.Method).NotEmpty().WithMessage("Payment method is required.");
+        RuleFor(x => x.Method).IsInEnum().WithMessage("Invalid payment method.");
         RuleFor(x => x.Identifier).NotEmpty().WithMessage("Payment identifier is required.");
     }
 }

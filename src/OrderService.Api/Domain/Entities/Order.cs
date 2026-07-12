@@ -1,4 +1,5 @@
 using OrderService.Api.Domain.Enums;
+using Shared.Enums;
 
 namespace OrderService.Api.Domain.Entities;
 
@@ -20,11 +21,11 @@ public class Order
 
     public bool IsVip { get; set; }
     
-    public string PaymentMethod { get; set; } = string.Empty;
+    public PaymentMethod PaymentMethod { get; set; }
 
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 
-    public static Order Create(Guid customerId, string idempotencyKey, bool isVip, string paymentMethod, List<OrderItem> items)
+    public static Order Create(Guid customerId, string idempotencyKey, bool isVip, PaymentMethod paymentMethod, List<OrderItem> items)
     {
         if (items == null || items.Count == 0)
             throw new InvalidOperationException("Order must contain at least one item.");
