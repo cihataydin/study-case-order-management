@@ -15,6 +15,7 @@ using OrderService.Api.Domain.Enums;
 using OrderService.Api.Infrastructure.Data;
 using Shared.Events;
 using Shared.Enums;
+using Shared.Exceptions;
 using Xunit;
 
 namespace OrderService.Api.UnitTests;
@@ -112,7 +113,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_WithExistingIdempotencyKey_ShouldThrowInvalidOperationException()
+    public async Task Handle_WithExistingIdempotencyKey_ShouldThrowDomainException()
     {
         // Arrange
         var existingOrderId = Guid.NewGuid();
@@ -136,7 +137,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
         );
 
         // Act & Assert
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _handler.Handle(command, CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<DomainException>(() => _handler.Handle(command, CancellationToken.None));
         Assert.Contains("already exists", ex.Message);
         
         var totalOrders = await _dbContext.Orders.CountAsync();

@@ -39,6 +39,12 @@ public class GlobalExceptionHandler : IExceptionHandler
                 .GroupBy(x => x.PropertyName)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.ErrorMessage).ToArray());
         }
+        else if (exception is DomainException domainException)
+        {
+            problemDetails.Status = StatusCodes.Status400BadRequest;
+            problemDetails.Title = "Business Rule Violation";
+            problemDetails.Detail = domainException.Message;
+        }
         else if (exception is DbUpdateConcurrencyException concurrencyException)
         {
             problemDetails.Status = StatusCodes.Status409Conflict;

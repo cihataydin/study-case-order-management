@@ -8,6 +8,7 @@ using InventoryService.Api.Domain.Entities;
 using Microsoft.Extensions.Caching.Distributed;
 using InventoryService.Api.Infrastructure.Data;
 using Shared.Events;
+using Shared.Exceptions;
 
 namespace InventoryService.Api.Application.Consumers;
 
@@ -69,7 +70,7 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
             {
                 product.DecreaseStock(item.Quantity, applyReservationLimit: true);
             }
-            catch (InvalidOperationException ex)
+            catch (DomainException ex)
             {
                 _logger.LogWarning(ex, "Reservation rule violated for Product {ProductId}", item.ProductId);
                 await context.Publish(new StockReleasedEvent(message.OrderId, ex.Message, message.IsVip));

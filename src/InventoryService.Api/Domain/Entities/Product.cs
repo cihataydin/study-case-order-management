@@ -1,3 +1,5 @@
+using Shared.Exceptions;
+
 namespace InventoryService.Api.Domain.Entities;
 
 public class Product
@@ -15,13 +17,13 @@ public class Product
     public void DecreaseStock(int quantity, bool applyReservationLimit = false)
     {
         if (quantity <= 0) throw new ArgumentException("Quantity must be greater than zero.", nameof(quantity));
-        if (TotalStock < quantity) throw new InvalidOperationException($"Insufficient stock for product {Id}. Available: {TotalStock}, Requested: {quantity}");
+        if (TotalStock < quantity) throw new DomainException($"Insufficient stock for product {Id}. Available: {TotalStock}, Requested: {quantity}");
         
         if (applyReservationLimit)
         {
             var maxAllowedReservation = (int)Math.Ceiling(TotalStock * 0.5m);
             if (quantity > maxAllowedReservation)
-                throw new InvalidOperationException($"Cannot reserve more than 50% of available stock for product {Id}.");
+                throw new DomainException($"Cannot reserve more than 50% of available stock for product {Id}.");
         }
 
         TotalStock -= quantity;

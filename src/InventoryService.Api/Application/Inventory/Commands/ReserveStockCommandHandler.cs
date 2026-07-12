@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using InventoryService.Api.Infrastructure.Data;
+using Shared.Exceptions;
 
 namespace InventoryService.Api.Application.Inventory.Commands;
 
@@ -36,7 +37,7 @@ public class ReserveStockCommandHandler : IRequestHandler<ReserveStockCommand, b
             {
                 product.DecreaseStock(item.Quantity, applyReservationLimit: true);
             }
-            catch (InvalidOperationException)
+            catch (DomainException)
             {
                 return false;
             }

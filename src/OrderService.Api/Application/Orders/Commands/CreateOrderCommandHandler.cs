@@ -13,6 +13,7 @@ using Shared.Events;
 using Microsoft.Extensions.Logging;
 using OrderService.Api.Application.Metrics;
 using Shared.Grpc;
+using Shared.Exceptions;
 
 namespace OrderService.Api.Application.Orders.Commands;
 
@@ -46,7 +47,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
         if (existingOrder != null)
         {
             _logger.LogWarning("Idempotent request detected. Order already exists with id: {OrderId}", existingOrder.Id);
-            throw new InvalidOperationException($"An order with idempotency key '{request.IdempotencyKey}' already exists.");
+            throw new DomainException($"An order with idempotency key '{request.IdempotencyKey}' already exists.");
         }
 
         var grpcRequest = new GetProductPricesRequest();
@@ -65,7 +66,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
         {
             if (!priceDictionary.TryGetValue(item.ProductId, out var currentPrice))
             {
-                throw new Exception($"Product {item.ProductId} not found in inventory!");
+                throw new DomainException($"Product {item.ProductId} not found in inventory!");
             }
 
             orderItems.Add(new OrderItem

@@ -13,6 +13,8 @@ using OrderService.Api.Domain.Enums;
 using OrderService.Api.Infrastructure.Data;
 using Shared.Events;
 using Shared.Enums;
+using MediatR;
+using Shared.Exceptions;
 using Xunit;
 
 namespace OrderService.Api.UnitTests;
@@ -125,7 +127,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
         var command = new RetryOrderCommand(orderId);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        await Assert.ThrowsAsync<DomainException>(async () =>
             await _handler.Handle(command, CancellationToken.None)
         );
 

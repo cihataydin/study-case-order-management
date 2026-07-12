@@ -10,6 +10,7 @@ using OrderService.Api.Domain.Entities;
 using OrderService.Api.Domain.Enums;
 using OrderService.Api.Infrastructure.Data;
 using Shared.Events;
+using Shared.Exceptions;
 using Xunit;
 
 namespace OrderService.Api.UnitTests;
@@ -81,7 +82,7 @@ public class CancelOrderCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_OrderOlderThanTwoHours_ShouldThrowInvalidOperationException()
+    public async Task Handle_OrderOlderThanTwoHours_ShouldThrowDomainException()
     {
         // Arrange
         var order = new Order {
@@ -97,7 +98,7 @@ public class CancelOrderCommandHandlerTests : IDisposable
         var command = new CancelOrderCommand(order.Id);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => 
+        await Assert.ThrowsAsync<DomainException>(async () => 
             await _handler.Handle(command, CancellationToken.None)
         );
 
@@ -126,7 +127,7 @@ public class CancelOrderCommandHandlerTests : IDisposable
         var command = new CancelOrderCommand(order.Id);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        await Assert.ThrowsAsync<DomainException>(async () =>
             await _handler.Handle(command, CancellationToken.None)
         );
 
