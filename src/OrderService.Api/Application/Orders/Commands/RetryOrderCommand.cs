@@ -35,15 +35,7 @@ public class RetryOrderCommandHandler : IRequestHandler<RetryOrderCommand, bool>
 
         if (order == null) return false;
 
-        if (order.Status != OrderStatus.Failed)
-        {
-            _logger.LogWarning("Order {OrderId} is not Failed. Only failed orders can be retried.", request.OrderId);
-            return false;
-        }
-
-        // Reset status to Pending and retry
-        order.Status = OrderStatus.Pending;
-        order.UpdatedAt = DateTime.UtcNow;
+        order.Retry();
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Retrying OrderId: {OrderId}", request.OrderId);

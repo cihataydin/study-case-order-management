@@ -39,8 +39,7 @@ public class OrderCreatedEventFaultConsumer : IConsumer<Fault<OrderCreatedEvent>
         
         if (order != null && order.Status == OrderStatus.Pending)
         {
-            order.Status = OrderStatus.Failed;
-            order.UpdatedAt = System.DateTime.UtcNow;
+            order.MarkAsFailed();
             
             // Note: We could save the exact reason to a new property like order.FailureReason if it existed in the domain
             

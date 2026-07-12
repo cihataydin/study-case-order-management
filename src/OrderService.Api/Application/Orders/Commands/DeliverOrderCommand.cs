@@ -35,14 +35,7 @@ public class DeliverOrderCommandHandler : IRequestHandler<DeliverOrderCommand, b
             return false;
         }
 
-        if (order.Status != OrderStatus.Shipped)
-        {
-            _logger.LogWarning("Order {OrderId} cannot be delivered. Current status: {Status}", request.OrderId, order.Status);
-            throw new InvalidOperationException("Order must be in Shipped status to be delivered.");
-        }
-
-        order.Status = OrderStatus.Delivered;
-        order.UpdatedAt = DateTime.UtcNow;
+        order.Deliver();
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Order {OrderId} marked as delivered.", request.OrderId);

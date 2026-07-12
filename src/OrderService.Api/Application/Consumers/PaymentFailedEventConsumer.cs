@@ -37,8 +37,7 @@ public class PaymentFailedEventConsumer : IConsumer<PaymentFailedEvent>
                 return;
             }
 
-            order.Status = OrderStatus.Failed;
-            order.UpdatedAt = DateTime.UtcNow;
+            order.MarkAsFailed();
             await _dbContext.SaveChangesAsync();
             _logger.LogInformation("Order {OrderId} marked as Failed due to payment failure.", message.OrderId);
             

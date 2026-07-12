@@ -42,8 +42,7 @@ public class PaymentProcessedEventConsumer : IConsumer<PaymentProcessedEvent>
                 return;
             }
 
-            order.Status = OrderStatus.Confirmed;
-            order.UpdatedAt = DateTime.UtcNow;
+            order.Confirm();
             await _dbContext.SaveChangesAsync();
             _logger.LogInformation("Order {OrderId} confirmed.", message.OrderId);
             

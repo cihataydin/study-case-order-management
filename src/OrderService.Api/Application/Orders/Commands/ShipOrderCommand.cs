@@ -35,14 +35,7 @@ public class ShipOrderCommandHandler : IRequestHandler<ShipOrderCommand, bool>
             return false;
         }
 
-        if (order.Status != OrderStatus.Confirmed)
-        {
-            _logger.LogWarning("Order {OrderId} cannot be shipped. Current status: {Status}", request.OrderId, order.Status);
-            throw new InvalidOperationException("Order must be in Confirmed status to be shipped.");
-        }
-
-        order.Status = OrderStatus.Shipped;
-        order.UpdatedAt = DateTime.UtcNow;
+        order.Ship();
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Order {OrderId} marked as shipped.", request.OrderId);

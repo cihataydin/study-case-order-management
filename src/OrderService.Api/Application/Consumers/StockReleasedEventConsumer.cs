@@ -37,8 +37,7 @@ public class StockReleasedEventConsumer : IConsumer<StockReleasedEvent>
                 return;
             }
 
-            order.Status = OrderStatus.Failed;
-            order.UpdatedAt = DateTime.UtcNow;
+            order.MarkAsFailed();
             await _dbContext.SaveChangesAsync();
             _logger.LogInformation("Order {OrderId} marked as Failed due to stock reservation failure or release.", message.OrderId);
             

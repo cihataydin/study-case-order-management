@@ -84,7 +84,6 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             CustomerId = request.CustomerId,
             IdempotencyKey = request.IdempotencyKey,
             TotalAmount = totalAmount,
-            Status = OrderStatus.Pending,
             IsVip = request.IsVip,
             PaymentMethod = request.PaymentMethod,
             Items = orderItems

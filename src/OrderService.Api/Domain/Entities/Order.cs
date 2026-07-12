@@ -8,13 +8,13 @@ public class Order
 
     public Guid CustomerId { get; set; }
 
-    public OrderStatus Status { get; set; } = OrderStatus.Pending;
+    public OrderStatus Status { get; private set; } = OrderStatus.Pending;
 
     public decimal TotalAmount { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTime? UpdatedAt { get; private set; }
     
     public string IdempotencyKey { get; set; } = string.Empty;
 
@@ -23,4 +23,58 @@ public class Order
     public string PaymentMethod { get; set; } = string.Empty;
 
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
+
+    public void Cancel()
+    {
+        if ((DateTime.UtcNow - CreatedAt).TotalHours > 2)
+            throw new InvalidOperationException("Order cannot be cancelled after 2 hours.");
+
+        if (Status == OrderStatus.Cancelled || Status == OrderStatus.Delivered || Status == OrderStatus.Shipped)
+            throw new InvalidOperationException($"Order cannot be cancelled because it is in {Status} status.");
+
+        Status = OrderStatus.Cancelled;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Ship()
+    {
+        if (Status != OrderStatus.Confirmed)
+            throw new InvalidOperationException("Order must be in Confirmed status to be shipped.");
+
+        Status = OrderStatus.Shipped;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Deliver()
+    {
+        if (Status != OrderStatus.Shipped)
+            throw new InvalidOperationException("Order must be in Shipped status to be delivered.");
+
+        Status = OrderStatus.Delivered;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Confirm()
+    {
+        if (Status != OrderStatus.Pending)
+            throw new InvalidOperationException("Order must be in Pending status to be confirmed.");
+
+        Status = OrderStatus.Confirmed;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void MarkAsFailed()
+    {
+        Status = OrderStatus.Failed;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Retry()
+    {
+        if (Status != OrderStatus.Failed)
+            throw new InvalidOperationException("Only failed orders can be retried.");
+
+        Status = OrderStatus.Pending;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

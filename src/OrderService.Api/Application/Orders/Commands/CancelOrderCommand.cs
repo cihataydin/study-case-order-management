@@ -35,21 +35,7 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
             return false;
         }
 
-        // Rule: Order cancellation allowed within 2 hours
-        if ((DateTime.UtcNow - order.CreatedAt).TotalHours > 2)
-        {
-            _logger.LogWarning("Order {OrderId} cannot be cancelled after 2 hours.", request.OrderId);
-            throw new InvalidOperationException("Order cannot be cancelled after 2 hours.");
-        }
-
-        if (order.Status == OrderStatus.Cancelled || order.Status == OrderStatus.Delivered || order.Status == OrderStatus.Shipped)
-        {
-            _logger.LogWarning("Order {OrderId} cannot be cancelled because it is in {Status} status.", request.OrderId, order.Status);
-            return false;
-        }
-
-        order.Status = OrderStatus.Cancelled;
-        order.UpdatedAt = DateTime.UtcNow;
+        order.Cancel();
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Order {OrderId} cancelled by user.", request.OrderId);

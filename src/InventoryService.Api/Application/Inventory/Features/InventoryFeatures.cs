@@ -112,7 +112,7 @@ public class ReserveStockCommandHandler : IRequestHandler<ReserveStockCommand, b
         {
             if (!products.TryGetValue(item.ProductId, out var product) || product.TotalStock < item.Quantity) return false;
             
-            product.TotalStock -= item.Quantity;
+            product.DecreaseStock(item.Quantity);
             _dbContext.StockReservations.Add(new Domain.Entities.StockReservation { OrderId = request.OrderId, ProductId = item.ProductId, Quantity = item.Quantity, ExpiresAt = DateTime.UtcNow.AddMinutes(10) });
         }
 
@@ -142,11 +142,19 @@ public class ReleaseReservationCommandHandler : IRequestHandler<ReleaseReservati
         var reservations = await _dbContext.StockReservations.Where(r => r.OrderId == request.OrderId).ToListAsync(cancellationToken);
         if (!reservations.Any()) return false;
         
+        var productIds = reservations.Select(r => r.ProductId).Distinct().ToList();
+        var products = await _dbContext.Products
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
         foreach(var res in reservations)
         {
-            var p = await _dbContext.Products.FirstOrDefaultAsync(x => x.Id == res.ProductId, cancellationToken);
-            if (p != null) p.TotalStock += res.Quantity;
+            if (products.TryGetValue(res.ProductId, out var p))
+            {
+                p.IncreaseStock(res.Quantity);
+            }
         }
+        
         _dbContext.StockReservations.RemoveRange(reservations);
         await _dbContext.SaveChangesAsync(cancellationToken);
         
@@ -182,7 +190,10 @@ public class BulkUpdateStockCommandHandler : IRequestHandler<BulkUpdateStockComm
             var product = products.FirstOrDefault(p => p.Id == updateItem.ProductId);
             if (product != null)
             {
-                product.TotalStock += updateItem.QuantityChange;
+                if (updateItem.QuantityChange >= 0)
+                    product.IncreaseStock(updateItem.QuantityChange);
+                else
+                    product.DecreaseStock(Math.Abs(updateItem.QuantityChange));
             }
         }
 
