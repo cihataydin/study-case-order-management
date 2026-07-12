@@ -4,6 +4,7 @@ using MediatR;
 
 using OrderService.Api.Application.Orders.Commands;
 using OrderService.Api.Application.Orders.Queries;
+using Shared.Exceptions;
 
 namespace OrderService.Api.Controllers.v1;
 
@@ -27,16 +28,9 @@ public class OrdersController : ControllerBase
             return BadRequest(new ProblemDetails { Title = "Missing Idempotency Key", Detail = "X-Idempotency-Key header is required." });
         }
 
-        try
-        {
-            var command = new CreateOrderCommand(request.CustomerId, idempotencyKey, request.Items, request.IsVip, request.PaymentMethod);
-            var orderId = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetOrderDetails), new { orderId = orderId }, new { OrderId = orderId });
-        }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("idempotency key"))
-        {
-            return Conflict(new ProblemDetails { Title = "Duplicate Order", Detail = ex.Message });
-        }
+        var command = new CreateOrderCommand(request.CustomerId, idempotencyKey, request.Items, request.IsVip, request.PaymentMethod);
+        var orderId = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetOrderDetails), new { orderId = orderId }, new { OrderId = orderId });
     }
 
     [HttpGet("{orderId:guid}")]
@@ -50,16 +44,9 @@ public class OrdersController : ControllerBase
     [HttpPut("{orderId:guid}/cancel")]
     public async Task<IActionResult> CancelOrder(Guid orderId)
     {
-        try 
-        {
-            var result = await _mediator.Send(new CancelOrderCommand(orderId));
-            if (!result) return BadRequest(new ProblemDetails { Title = "Cancellation Failed", Detail = "Order could not be cancelled. It may not exist or is already completed." });
-            return NoContent();
-        }
-        catch(InvalidOperationException ex)
-        {
-            return BadRequest(new ProblemDetails { Title = "Invalid Operation", Detail = ex.Message });
-        }
+        var result = await _mediator.Send(new CancelOrderCommand(orderId));
+        if (!result) return BadRequest(new ProblemDetails { Title = "Cancellation Failed", Detail = "Order could not be cancelled. It may not exist or is already completed." });
+        return NoContent();
     }
 
     [HttpGet("customer/{customerId:guid}")]
@@ -88,30 +75,16 @@ public class OrdersController : ControllerBase
     [HttpPut("{orderId:guid}/ship")]
     public async Task<IActionResult> ShipOrder(Guid orderId)
     {
-        try 
-        {
-            var result = await _mediator.Send(new ShipOrderCommand(orderId));
-            if (!result) return BadRequest(new ProblemDetails { Title = "Shipping Failed", Detail = "Order could not be shipped. It may not exist." });
-            return NoContent();
-        }
-        catch(InvalidOperationException ex)
-        {
-            return BadRequest(new ProblemDetails { Title = "Invalid Operation", Detail = ex.Message });
-        }
+        var result = await _mediator.Send(new ShipOrderCommand(orderId));
+        if (!result) return BadRequest(new ProblemDetails { Title = "Shipping Failed", Detail = "Order could not be shipped. It may not exist." });
+        return NoContent();
     }
 
     [HttpPut("{orderId:guid}/deliver")]
     public async Task<IActionResult> DeliverOrder(Guid orderId)
     {
-        try 
-        {
-            var result = await _mediator.Send(new DeliverOrderCommand(orderId));
-            if (!result) return BadRequest(new ProblemDetails { Title = "Delivery Failed", Detail = "Order could not be delivered. It may not exist." });
-            return NoContent();
-        }
-        catch(InvalidOperationException ex)
-        {
-            return BadRequest(new ProblemDetails { Title = "Invalid Operation", Detail = ex.Message });
-        }
+        var result = await _mediator.Send(new DeliverOrderCommand(orderId));
+        if (!result) return BadRequest(new ProblemDetails { Title = "Delivery Failed", Detail = "Order could not be delivered. It may not exist." });
+        return NoContent();
     }
 }

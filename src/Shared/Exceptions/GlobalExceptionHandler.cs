@@ -41,9 +41,18 @@ public class GlobalExceptionHandler : IExceptionHandler
         }
         else if (exception is DomainException domainException)
         {
-            problemDetails.Status = StatusCodes.Status400BadRequest;
-            problemDetails.Title = "Business Rule Violation";
-            problemDetails.Detail = domainException.Message;
+            if (domainException.Message.Contains("idempotency key", StringComparison.OrdinalIgnoreCase))
+            {
+                problemDetails.Status = StatusCodes.Status409Conflict;
+                problemDetails.Title = "Duplicate Order";
+                problemDetails.Detail = domainException.Message;
+            }
+            else
+            {
+                problemDetails.Status = StatusCodes.Status400BadRequest;
+                problemDetails.Title = "Business Rule Violation";
+                problemDetails.Detail = domainException.Message;
+            }
         }
         else if (exception is DbUpdateConcurrencyException concurrencyException)
         {

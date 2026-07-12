@@ -12,18 +12,37 @@ This project is a simulated Order Management System developed in accordance with
 
 ## 🚀 Getting Started & Installation
 
-### 1. Starting Infrastructure Services (Docker)
-You can start the PostgreSQL and RabbitMQ services required by the project with a single command via Docker:
+### 1. Running Infrastructure Only (Local Development)
+If you want to run only the required infrastructure (PostgreSQL, Redis, RabbitMQ, Jaeger, etc.) and run the APIs locally via IDE/CLI:
 
 ```bash
 docker compose up -d
 ```
 
-This process will run:
-*   **PostgreSQL:** On port `localhost:5432` with credentials `root` / `rootpassword`.
-*   **RabbitMQ:** On port `localhost:5672` (AMQP) and `localhost:15672` (Management UI - guest/guest).
+This command will start all the background services on their respective standard ports.
 
-### 2. Running the Microservices
+### 2. Running the Entire Stack (Infrastructure + APIs) via Docker
+You can run the entire system, including the microservices, entirely inside Docker containers without needing the .NET SDK installed on your host machine.
+
+```bash
+docker compose --profile apps up -d --build
+```
+
+This process will run:
+*   **PostgreSQL:** `localhost:5432`
+*   **RabbitMQ:** `localhost:5672` (AMQP) and `localhost:15672` (Management)
+*   **Redis:** `localhost:6379`
+*   **Jaeger:** `localhost:16686`
+*   **Order Service:** `http://localhost:5277/swagger`
+*   **Inventory Service:** `http://localhost:5050/swagger`
+*   **Payment Service:** `http://localhost:5032/swagger`
+
+To stop all services including the APIs:
+```bash
+docker compose --profile apps down
+```
+
+### 3. Running the Microservices Locally (.NET CLI)
 You can run each service in independent terminal windows by navigating to their respective directories or using the following commands from the root directory:
 
 #### A. Order Service (Port: 5277)
