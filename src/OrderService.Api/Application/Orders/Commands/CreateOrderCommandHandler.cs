@@ -24,23 +24,36 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly OrderMetrics _metrics;
     private readonly InventoryGrpcService.InventoryGrpcServiceClient _inventoryGrpcClient;
+    private readonly StackExchange.Redis.IConnectionMultiplexer _redis;
 
     public CreateOrderCommandHandler(
         OrderDbContext dbContext, 
         IPublishEndpoint publishEndpoint, 
         ILogger<CreateOrderCommandHandler> logger, 
         OrderMetrics metrics,
-        InventoryGrpcService.InventoryGrpcServiceClient inventoryGrpcClient)
+        InventoryGrpcService.InventoryGrpcServiceClient inventoryGrpcClient,
+        StackExchange.Redis.IConnectionMultiplexer redis)
     {
         _dbContext = dbContext;
         _publishEndpoint = publishEndpoint;
         _logger = logger;
         _metrics = metrics;
         _inventoryGrpcClient = inventoryGrpcClient;
+        _redis = redis;
     }
 
     public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
+        var db = _redis.GetDatabase();
+        var cacheKey = $"idempotency_{request.IdempotencyKey}";
+        
+        bool isSet = await db.StringSetAsync(cacheKey, "processing", TimeSpan.FromHours(24), StackExchange.Redis.When.NotExists);
+        if (!isSet)
+        {
+            _logger.LogWarning("Idempotent request detected via Redis. Order creation is already processed or processing with key: {IdempotencyKey}", request.IdempotencyKey);
+            throw new DomainException($"An order with idempotency key '{request.IdempotencyKey}' already exists.");
+        }
+
         var existingOrder = await _dbContext.Orders
             .FirstOrDefaultAsync(x => x.IdempotencyKey == request.IdempotencyKey, cancellationToken);
 

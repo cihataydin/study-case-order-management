@@ -16,6 +16,7 @@ using OrderService.Api.Application.Mapping;
 using OrderService.Api.Application.Consumers;
 using Shared.Middlewares;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +72,15 @@ builder.Services.AddOpenTelemetry()
             .AddMeter(OrderMetrics.MeterName)
             .AddPrometheusExporter();
     });
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+    options.InstanceName = "Order_";
+});
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => 
+    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
 
 builder.Services.AddMediatR(cfg => 
 {

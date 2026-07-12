@@ -22,10 +22,3 @@ Each microservice has its own isolated database schema (using PostgreSQL):
         *   **Decision:** To prevent race conditions, `RowVersion` based **Optimistic Locking** will be used on the EF Core side (ConcurrencyToken).
 *   **Payment DB (Mock):**
     *   `Payments`: Payment records (OrderId, Amount, Status, Method).
-
-## 3. API Contracts (OpenAPI/Swagger)
-All services have OpenAPI/Swagger support. Once the services are running, the current contracts and testing interface can be accessed via the browser using the links below:
-
-*   **Order Service:** [http://localhost:5277/swagger/index.html](http://localhost:5277/swagger/index.html)
-*   **Inventory Service:** [http://localhost:5050/swagger/index.html](http://localhost:5050/swagger/index.html)
-*   **Payment Service:** [http://localhost:5032/swagger/index.html](http://localhost:5032/swagger/index.html)
