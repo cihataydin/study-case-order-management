@@ -21,6 +21,9 @@ public class OrderDbContext : DbContext
             entity.Property(e => e.IdempotencyKey).IsRequired().HasMaxLength(100);
             entity.HasIndex(e => e.IdempotencyKey).IsUnique();
 
+            entity.Property(e => e.PaymentMethod).HasConversion<string>();
+            entity.Property(e => e.Status).HasConversion<string>();
+
             entity.HasMany(e => e.Items)
                 .WithOne(e => e.Order)
                 .HasForeignKey(e => e.OrderId)

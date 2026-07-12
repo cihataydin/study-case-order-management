@@ -17,6 +17,8 @@ public class PaymentDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.Method).HasConversion<string>();
+            entity.Property(e => e.Status).HasConversion<string>();
             entity.HasIndex(e => e.OrderId);
         });
         
