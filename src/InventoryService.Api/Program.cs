@@ -34,6 +34,8 @@ builder.Services.AddDbContextPool<InventoryDbContext>(options =>
 builder.Services.AddSingleton<InventoryService.Api.Application.Metrics.InventoryMetrics>();
 
 
+builder.Services.AddScoped<InventoryService.Api.Application.Services.IFlashSaleService, InventoryService.Api.Application.Services.FlashSaleService>();
+
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
     .WithTracing(tracing =>

@@ -32,7 +32,15 @@ public class ReserveStockCommandHandler : IRequestHandler<ReserveStockCommand, b
         {
             if (!products.TryGetValue(item.ProductId, out var product) || product.TotalStock < item.Quantity) return false;
             
-            product.DecreaseStock(item.Quantity);
+            try
+            {
+                product.DecreaseStock(item.Quantity, applyReservationLimit: true);
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+
             _dbContext.StockReservations.Add(new Domain.Entities.StockReservation { OrderId = request.OrderId, ProductId = item.ProductId, Quantity = item.Quantity, ExpiresAt = System.DateTime.UtcNow.AddMinutes(10) });
         }
 

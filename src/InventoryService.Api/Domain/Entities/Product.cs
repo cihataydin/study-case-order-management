@@ -12,11 +12,18 @@ public class Product
     
     public byte[] Version { get; set; } = null!;
 
-    public void DecreaseStock(int quantity)
+    public void DecreaseStock(int quantity, bool applyReservationLimit = false)
     {
         if (quantity <= 0) throw new ArgumentException("Quantity must be greater than zero.", nameof(quantity));
         if (TotalStock < quantity) throw new InvalidOperationException($"Insufficient stock for product {Id}. Available: {TotalStock}, Requested: {quantity}");
         
+        if (applyReservationLimit)
+        {
+            var maxAllowedReservation = (int)Math.Ceiling(TotalStock * 0.5m);
+            if (quantity > maxAllowedReservation)
+                throw new InvalidOperationException($"Cannot reserve more than 50% of available stock for product {Id}.");
+        }
+
         TotalStock -= quantity;
     }
 

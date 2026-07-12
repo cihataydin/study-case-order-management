@@ -17,20 +17,20 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
     private readonly ILogger<OrderCreatedEventConsumer> _logger;
     private readonly IDistributedCache _cache;
     private readonly Application.Metrics.InventoryMetrics _metrics;
-    private readonly StackExchange.Redis.IConnectionMultiplexer _redis;
+    private readonly Application.Services.IFlashSaleService _flashSaleService;
 
     public OrderCreatedEventConsumer(
         InventoryDbContext dbContext, 
         ILogger<OrderCreatedEventConsumer> logger, 
         IDistributedCache cache, 
         Application.Metrics.InventoryMetrics metrics,
-        StackExchange.Redis.IConnectionMultiplexer redis)
+        Application.Services.IFlashSaleService flashSaleService)
     {
         _dbContext = dbContext;
         _logger = logger;
         _cache = cache;
         _metrics = metrics;
-        _redis = redis;
+        _flashSaleService = flashSaleService;
     }
 
     public async Task Consume(ConsumeContext<OrderCreatedEvent> context)
@@ -57,58 +57,24 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
                 return;
             }
 
-            if (product.TotalStock < item.Quantity)
+            var (isAllowed, flashSaleError) = await _flashSaleService.CheckFlashSaleLimitAsync(message.CustomerId, item.ProductId, item.Quantity, product.Name);
+            if (!isAllowed)
             {
-                _logger.LogWarning("Insufficient stock for Product {ProductId}. Required: {Quantity}, Available: {Stock}", item.ProductId, item.Quantity, product.TotalStock);
-                await context.Publish(new StockReleasedEvent(message.OrderId, $"Insufficient stock for product {item.ProductId}", message.IsVip));
+                _logger.LogWarning(flashSaleError);
+                await context.Publish(new StockReleasedEvent(message.OrderId, flashSaleError, message.IsVip));
                 return;
             }
 
-            // Cannot reserve more than 50% of available stock per order
-            var maxAllowedReservation = (int)Math.Ceiling(product.TotalStock * 0.5m);
-            if (item.Quantity > maxAllowedReservation) 
+            try
             {
-                _logger.LogWarning("Cannot reserve more than 50% of available stock for Product {ProductId}. Requested: {Requested}, Max Allowed: {MaxAllowed}", item.ProductId, item.Quantity, maxAllowedReservation);
-                await context.Publish(new StockReleasedEvent(message.OrderId, $"Cannot reserve more than 50% of stock for product {item.ProductId}", message.IsVip));
+                product.DecreaseStock(item.Quantity, applyReservationLimit: true);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Reservation rule violated for Product {ProductId}", item.ProductId);
+                await context.Publish(new StockReleasedEvent(message.OrderId, ex.Message, message.IsVip));
                 return;
             }
-
-            // Fake Flash Sale Check (for the sake of the rule, let's assume any product with TotalStock > 1000 is a flash sale item)
-            // Or ideally it should be a flag on the entity. Let's assume there's a convention.
-            bool isFlashSale = product.Name.Contains("Flash");
-            if (isFlashSale)
-            {
-                var cacheKey = $"Inventory_FlashSale_{message.CustomerId}_{item.ProductId}";
-                try
-                {
-                    var db = _redis.GetDatabase();
-                    long newCount = await db.StringIncrementAsync(cacheKey, item.Quantity);
-                    
-                    if (newCount == item.Quantity) 
-                    {
-                        // Set expiration on first increment
-                        await db.KeyExpireAsync(cacheKey, TimeSpan.FromDays(30));
-                    }
-
-                    if (newCount > 2)
-                    {
-                        // Revert the increment
-                        await db.StringDecrementAsync(cacheKey, item.Quantity);
-                        
-                        _logger.LogWarning("Flash sale items limited to max 2 per customer. CustomerId: {CustomerId}, ProductId: {ProductId}", message.CustomerId, item.ProductId);
-                        await context.Publish(new StockReleasedEvent(message.OrderId, $"Flash sale limit exceeded for product {item.ProductId}", message.IsVip));
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to connect to Redis cache for Flash Sale validation. Rejecting order to prevent overselling. CustomerId: {CustomerId}, ProductId: {ProductId}", message.CustomerId, item.ProductId);
-                    await context.Publish(new StockReleasedEvent(message.OrderId, "System error during Flash Sale validation.", message.IsVip));
-                    return;
-                }
-            }
-
-            product.DecreaseStock(item.Quantity);
 
             // Low stock alert when quantity < 10
             if (product.TotalStock < 10)

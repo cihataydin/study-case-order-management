@@ -23,8 +23,7 @@ public class InventoryConsumersTests : IDisposable
     private readonly ILogger<OrderCancelledEventConsumer> _cancelledLogger;
     private readonly ILogger<OrderConfirmedEventConsumer> _confirmedLogger;
     private readonly IDistributedCache _cache;
-    private readonly StackExchange.Redis.IConnectionMultiplexer _redisMock;
-    private readonly StackExchange.Redis.IDatabase _redisDatabaseMock;
+    private readonly Application.Services.IFlashSaleService _flashSaleMock;
 
     public InventoryConsumersTests()
     {
@@ -38,9 +37,9 @@ public class InventoryConsumersTests : IDisposable
         _confirmedLogger = Substitute.For<ILogger<OrderConfirmedEventConsumer>>();
         _cache = Substitute.For<IDistributedCache>();
 
-        _redisMock = Substitute.For<StackExchange.Redis.IConnectionMultiplexer>();
-        _redisDatabaseMock = Substitute.For<StackExchange.Redis.IDatabase>();
-        _redisMock.GetDatabase().Returns(_redisDatabaseMock);
+        _flashSaleMock = Substitute.For<Application.Services.IFlashSaleService>();
+        _flashSaleMock.CheckFlashSaleLimitAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<string>())
+            .Returns((true, string.Empty));
     }
 
     [Fact]
@@ -66,7 +65,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!, _redisMock);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!, _flashSaleMock);
 
         // Act
         await consumer.Consume(context);
@@ -108,7 +107,7 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!, _redisMock);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!, _flashSaleMock);
 
         // Act
         await consumer.Consume(context);
@@ -150,10 +149,10 @@ public class InventoryConsumersTests : IDisposable
         var context = Substitute.For<ConsumeContext<OrderCreatedEvent>>();
         context.Message.Returns(message);
 
-        _redisDatabaseMock.StringIncrementAsync(Arg.Any<StackExchange.Redis.RedisKey>(), Arg.Any<long>(), Arg.Any<StackExchange.Redis.CommandFlags>())
-            .Returns(3L);
+        _flashSaleMock.CheckFlashSaleLimitAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<string>())
+            .Returns((false, "Flash sale limit exceeded for product " + productId));
 
-        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!, _redisMock);
+        var consumer = new OrderCreatedEventConsumer(_dbContext, _createdLogger, _cache, null!, _flashSaleMock);
 
         // Act
         await consumer.Consume(context);
