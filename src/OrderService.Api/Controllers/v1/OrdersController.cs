@@ -20,14 +20,14 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromHeader(Name = "X-Idempotency-Key")] string idempotencyKey, [FromBody] CreateOrderCommand request)
+    public async Task<IActionResult> CreateOrder([FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey, [FromBody] CreateOrderRequest request)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
         {
             return BadRequest(new ProblemDetails { Title = "Missing Idempotency Key", Detail = "X-Idempotency-Key header is required." });
         }
 
-        var command = request with { IdempotencyKey = idempotencyKey };
+        var command = new CreateOrderCommand(request.CustomerId, idempotencyKey, request.Items, request.IsVip, request.PaymentMethod);
         var orderId = await _mediator.Send(command);
         return CreatedAtAction(nameof(GetOrderDetails), new { orderId = orderId }, new { OrderId = orderId });
     }
