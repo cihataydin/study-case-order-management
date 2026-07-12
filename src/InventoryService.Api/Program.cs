@@ -146,7 +146,8 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
-    dbContext.Database.Migrate();
+    await dbContext.Database.MigrateAsync();
+    await InventoryDbSeeder.SeedAsync(dbContext);
 }
 
 app.Run();
