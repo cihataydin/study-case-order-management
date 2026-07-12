@@ -8,6 +8,12 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Shared.Exceptions;
+using System.Text.Json.Serialization;
+using PaymentService.Api.BackgroundServices;
+using Shared.Behaviors;
+using PaymentService.Api.Application.Consumers;
+using Shared.Middlewares;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +28,7 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -34,7 +40,7 @@ builder.Services.AddDbContextPool<PaymentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
-builder.Services.AddHostedService<PaymentService.Api.BackgroundServices.RefundProcessingWorker>();
+builder.Services.AddHostedService<RefundProcessingWorker>();
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
@@ -60,7 +66,7 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddMediatR(cfg => 
 {
     cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-    cfg.AddOpenBehavior(typeof(Shared.Behaviors.ValidationBehavior<,>));
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
@@ -75,8 +81,8 @@ builder.Services.AddMassTransit(x =>
         }
     });
 
-    x.AddConsumer<PaymentService.Api.Application.Consumers.StockReservedEventConsumer>();
-    x.AddConsumer<PaymentService.Api.Application.Consumers.OrderCancelledEventConsumer>();
+    x.AddConsumer<StockReservedEventConsumer>();
+    x.AddConsumer<OrderCancelledEventConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
@@ -107,18 +113,18 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
-app.UseMiddleware<Shared.Middlewares.RequestResponseLoggingMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.MapPrometheusScrapingEndpoint();
 
-app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
     Predicate = _ => false
 });
 
-app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = _ => true
 });

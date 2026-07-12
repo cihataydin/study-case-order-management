@@ -9,6 +9,13 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OrderService.Api.Application.Metrics;
 using Shared.Exceptions;
+using System.Text.Json.Serialization;
+using Shared.Grpc;
+using Shared.Behaviors;
+using OrderService.Api.Application.Mapping;
+using OrderService.Api.Application.Consumers;
+using Shared.Middlewares;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,12 +30,12 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddGrpcClient<Shared.Grpc.InventoryGrpcService.InventoryGrpcServiceClient>(options =>
+builder.Services.AddGrpcClient<InventoryGrpcService.InventoryGrpcServiceClient>(options =>
 {
     // Getting URL from configuration or default to localhost
     options.Address = new Uri(builder.Configuration["InventoryServiceUrl"] ?? "http://localhost:5050");
@@ -68,10 +75,10 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddMediatR(cfg => 
 {
     cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-    cfg.AddOpenBehavior(typeof(Shared.Behaviors.ValidationBehavior<,>));
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 
-builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderService.Api.Application.Mapping.OrderMappingProfile>());
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderMappingProfile>());
 
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
@@ -85,10 +92,10 @@ builder.Services.AddMassTransit(x =>
         }
     });
 
-    x.AddConsumer<OrderService.Api.Application.Consumers.PaymentProcessedEventConsumer>();
-    x.AddConsumer<OrderService.Api.Application.Consumers.PaymentFailedEventConsumer>();
-    x.AddConsumer<OrderService.Api.Application.Consumers.StockReleasedEventConsumer>();
-    x.AddConsumer<OrderService.Api.Application.Consumers.OrderCreatedEventFaultConsumer>();
+    x.AddConsumer<PaymentProcessedEventConsumer>();
+    x.AddConsumer<PaymentFailedEventConsumer>();
+    x.AddConsumer<StockReleasedEventConsumer>();
+    x.AddConsumer<OrderCreatedEventFaultConsumer>();
 
     x.AddEntityFrameworkOutbox<OrderDbContext>(o =>
     {
@@ -125,19 +132,19 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
-app.UseMiddleware<Shared.Middlewares.RequestResponseLoggingMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapPrometheusScrapingEndpoint();
 
-app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
     Predicate = _ => false
 });
 
-app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = _ => true
 });

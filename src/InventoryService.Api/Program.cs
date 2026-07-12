@@ -8,6 +8,16 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Shared.Exceptions;
+using System.Text.Json.Serialization;
+using InventoryService.Api.Application.Metrics;
+using InventoryService.Api.Application.Services;
+using InventoryService.Api.Application.Workers;
+using InventoryService.Api.Application.Consumers;
+using InventoryService.Api.Application.Grpc;
+using Shared.Behaviors;
+using Shared.Middlewares;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +32,7 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -35,10 +45,10 @@ builder.Services.AddDbContextPool<InventoryDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
-builder.Services.AddSingleton<InventoryService.Api.Application.Metrics.InventoryMetrics>();
+builder.Services.AddSingleton<InventoryMetrics>();
 
 
-builder.Services.AddScoped<InventoryService.Api.Application.Services.IFlashSaleService, InventoryService.Api.Application.Services.FlashSaleService>();
+builder.Services.AddScoped<IFlashSaleService, FlashSaleService>();
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
@@ -56,7 +66,7 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics =>
     {
         metrics
-            .AddMeter(InventoryService.Api.Application.Metrics.InventoryMetrics.MeterName)
+            .AddMeter(InventoryMetrics.MeterName)
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddPrometheusExporter();
@@ -68,18 +78,18 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "Inventory_";
 });
 
-builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => 
-    StackExchange.Redis.ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => 
+    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
 
 builder.Services.AddMediatR(cfg => 
 {
     cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-    cfg.AddOpenBehavior(typeof(Shared.Behaviors.ValidationBehavior<,>));
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
-builder.Services.AddHostedService<InventoryService.Api.Application.Workers.StockReservationCleanupWorker>();
+builder.Services.AddHostedService<StockReservationCleanupWorker>();
 
 builder.Services.AddMassTransit(x =>
 {
@@ -91,9 +101,9 @@ builder.Services.AddMassTransit(x =>
         }
     });
 
-    x.AddConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>();
-    x.AddConsumer<InventoryService.Api.Application.Consumers.OrderCancelledEventConsumer>();
-    x.AddConsumer<InventoryService.Api.Application.Consumers.OrderConfirmedEventConsumer>();
+    x.AddConsumer<OrderCreatedEventConsumer>();
+    x.AddConsumer<OrderCancelledEventConsumer>();
+    x.AddConsumer<OrderConfirmedEventConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
@@ -111,7 +121,7 @@ builder.Services.AddMassTransit(x =>
         cfg.ReceiveEndpoint("orders-queue", e =>
         {
             e.EnablePriority(10);
-            e.ConfigureConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>(context);
+            e.ConfigureConsumer<OrderCreatedEventConsumer>(context);
         });
 
         cfg.ConfigureEndpoints(context);
@@ -130,19 +140,19 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
-app.UseMiddleware<Shared.Middlewares.RequestResponseLoggingMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.MapPrometheusScrapingEndpoint();
-app.MapGrpcService<InventoryService.Api.Application.Grpc.InventoryGrpcServiceImpl>();
+app.MapGrpcService<InventoryGrpcServiceImpl>();
 
-app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
     Predicate = _ => false
 });
 
-app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = _ => true
 });

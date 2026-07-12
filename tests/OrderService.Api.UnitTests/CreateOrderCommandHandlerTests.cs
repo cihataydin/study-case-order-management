@@ -16,6 +16,7 @@ using OrderService.Api.Infrastructure.Data;
 using Shared.Events;
 using Shared.Enums;
 using Shared.Exceptions;
+using Shared.Grpc;
 using Xunit;
 
 namespace OrderService.Api.UnitTests;
@@ -27,7 +28,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly OrderMetrics _metrics;
     private readonly IMeterFactory _meterFactory;
-    private readonly Shared.Grpc.InventoryGrpcService.InventoryGrpcServiceClient _inventoryGrpcClient;
+    private readonly InventoryGrpcService.InventoryGrpcServiceClient _inventoryGrpcClient;
     private readonly CreateOrderCommandHandler _handler;
 
     public CreateOrderCommandHandlerTests()
@@ -46,18 +47,18 @@ public class CreateOrderCommandHandlerTests : IDisposable
         _meterFactory.Create(Arg.Any<MeterOptions>()).Returns(meter);
         _metrics = new OrderMetrics(_meterFactory);
 
-        _inventoryGrpcClient = Substitute.For<Shared.Grpc.InventoryGrpcService.InventoryGrpcServiceClient>();
-        _inventoryGrpcClient.GetProductPricesAsync(Arg.Any<Shared.Grpc.GetProductPricesRequest>(), Arg.Any<global::Grpc.Core.Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
+        _inventoryGrpcClient = Substitute.For<InventoryGrpcService.InventoryGrpcServiceClient>();
+        _inventoryGrpcClient.GetProductPricesAsync(Arg.Any<GetProductPricesRequest>(), Arg.Any<global::Grpc.Core.Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
             .Returns(callInfo => 
             {
-                var req = callInfo.Arg<Shared.Grpc.GetProductPricesRequest>();
-                var res = new Shared.Grpc.GetProductPricesResponse();
+                var req = callInfo.Arg<GetProductPricesRequest>();
+                var res = new GetProductPricesResponse();
                 foreach (var id in req.ProductIds)
                 {
-                    res.Products.Add(new Shared.Grpc.ProductPriceItem { ProductId = id, Price = 150.0 });
+                    res.Products.Add(new ProductPriceItem { ProductId = id, Price = 150.0 });
                 }
                 
-                return new global::Grpc.Core.AsyncUnaryCall<Shared.Grpc.GetProductPricesResponse>(
+                return new global::Grpc.Core.AsyncUnaryCall<GetProductPricesResponse>(
                     Task.FromResult(res),
                     Task.FromResult(new global::Grpc.Core.Metadata()),
                     () => global::Grpc.Core.Status.DefaultSuccess,
