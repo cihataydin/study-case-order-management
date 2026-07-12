@@ -26,6 +26,12 @@ public class Order
 
     public static Order Create(Guid customerId, string idempotencyKey, bool isVip, string paymentMethod, List<OrderItem> items)
     {
+        if (items == null || items.Count == 0)
+            throw new InvalidOperationException("Order must contain at least one item.");
+
+        if (items.Count > 20)
+            throw new InvalidOperationException("Maximum items per order is 20.");
+
         var totalAmount = items.Sum(i => i.Quantity * i.UnitPrice);
 
         if (totalAmount < 100)

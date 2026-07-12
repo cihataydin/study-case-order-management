@@ -69,6 +69,14 @@ builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddMassTransit(x =>
 {
+    x.AddConfigureEndpointsCallback((context, name, cfg) =>
+    {
+        if (cfg is IRabbitMqReceiveEndpointConfigurator rmq)
+        {
+            rmq.EnablePriority(10);
+        }
+    });
+
     x.AddConsumer<OrderService.Api.Application.Consumers.PaymentProcessedEventConsumer>();
     x.AddConsumer<OrderService.Api.Application.Consumers.PaymentFailedEventConsumer>();
     x.AddConsumer<OrderService.Api.Application.Consumers.StockReleasedEventConsumer>();

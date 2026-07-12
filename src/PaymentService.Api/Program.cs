@@ -57,6 +57,14 @@ builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
 builder.Services.AddMassTransit(x =>
 {
+    x.AddConfigureEndpointsCallback((context, name, cfg) =>
+    {
+        if (cfg is IRabbitMqReceiveEndpointConfigurator rmq)
+        {
+            rmq.EnablePriority(10);
+        }
+    });
+
     x.AddConsumer<PaymentService.Api.Application.Consumers.StockReservedEventConsumer>();
     x.AddConsumer<PaymentService.Api.Application.Consumers.OrderCancelledEventConsumer>();
 

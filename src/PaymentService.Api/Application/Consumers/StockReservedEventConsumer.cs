@@ -70,7 +70,7 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
                 await _dbContext.SaveChangesAsync();
                 
                 _logger.LogInformation("Payment processed successfully for OrderId: {OrderId}", message.OrderId);
-                await context.Publish(new PaymentProcessedEvent(message.OrderId, payment.Id));
+                await context.Publish(new PaymentProcessedEvent(message.OrderId, payment.Id, message.IsVip));
             }
             else
             {
@@ -78,7 +78,7 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
                 await _dbContext.SaveChangesAsync();
                 
                 _logger.LogWarning("Payment failed for OrderId: {OrderId}", message.OrderId);
-                await context.Publish(new PaymentFailedEvent(message.OrderId, "Card declined by bank"));
+                await context.Publish(new PaymentFailedEvent(message.OrderId, "Card declined by bank", message.IsVip));
             }
         }
         catch (Exception ex)
@@ -87,7 +87,7 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
             await _dbContext.SaveChangesAsync();
             
             _logger.LogError(ex, "Payment process failed completely for OrderId: {OrderId}", message.OrderId);
-            await context.Publish(new PaymentFailedEvent(message.OrderId, "Payment gateway unavailable"));
+            await context.Publish(new PaymentFailedEvent(message.OrderId, "Payment gateway unavailable", message.IsVip));
         }
     }
 

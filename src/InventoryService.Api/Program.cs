@@ -73,6 +73,14 @@ builder.Services.AddHostedService<InventoryService.Api.Application.Workers.Stock
 
 builder.Services.AddMassTransit(x =>
 {
+    x.AddConfigureEndpointsCallback((context, name, cfg) =>
+    {
+        if (cfg is IRabbitMqReceiveEndpointConfigurator rmq)
+        {
+            rmq.EnablePriority(10);
+        }
+    });
+
     x.AddConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>();
     x.AddConsumer<InventoryService.Api.Application.Consumers.OrderCancelledEventConsumer>();
     x.AddConsumer<InventoryService.Api.Application.Consumers.OrderConfirmedEventConsumer>();
@@ -92,11 +100,7 @@ builder.Services.AddMassTransit(x =>
 
         cfg.ReceiveEndpoint("orders-queue", e =>
         {
-            e.ConfigureConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>(context);
-        });
-
-        cfg.ReceiveEndpoint("vip-orders-queue", e =>
-        {
+            e.EnablePriority(10);
             e.ConfigureConsumer<InventoryService.Api.Application.Consumers.OrderCreatedEventConsumer>(context);
         });
 

@@ -97,10 +97,15 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             request.PaymentMethod
         );
 
-        var queueName = request.IsVip ? "queue:vip-orders-queue" : "queue:orders-queue";
-        var sendEndpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri(queueName));
+        var sendEndpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri("queue:orders-queue"));
         
-        await sendEndpoint.Send(orderCreatedEvent, cancellationToken);
+        await sendEndpoint.Send(orderCreatedEvent, context => 
+        {
+            if (request.IsVip)
+            {
+                context.SetPriority(9);
+            }
+        }, cancellationToken);
 
         _logger.LogInformation("Order {OrderId} created and event saved to Outbox.", order.Id);
 

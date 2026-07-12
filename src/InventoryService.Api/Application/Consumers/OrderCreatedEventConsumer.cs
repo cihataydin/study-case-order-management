@@ -53,14 +53,14 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
             if (!products.TryGetValue(item.ProductId, out var product))
             {
                 _logger.LogWarning("Product {ProductId} not found for Order {OrderId}", item.ProductId, message.OrderId);
-                await context.Publish(new StockReleasedEvent(message.OrderId, $"Product {item.ProductId} not found"));
+                await context.Publish(new StockReleasedEvent(message.OrderId, $"Product {item.ProductId} not found", message.IsVip));
                 return;
             }
 
             if (product.TotalStock < item.Quantity)
             {
                 _logger.LogWarning("Insufficient stock for Product {ProductId}. Required: {Quantity}, Available: {Stock}", item.ProductId, item.Quantity, product.TotalStock);
-                await context.Publish(new StockReleasedEvent(message.OrderId, $"Insufficient stock for product {item.ProductId}"));
+                await context.Publish(new StockReleasedEvent(message.OrderId, $"Insufficient stock for product {item.ProductId}", message.IsVip));
                 return;
             }
 
@@ -69,7 +69,7 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
             if (item.Quantity > maxAllowedReservation) 
             {
                 _logger.LogWarning("Cannot reserve more than 50% of available stock for Product {ProductId}. Requested: {Requested}, Max Allowed: {MaxAllowed}", item.ProductId, item.Quantity, maxAllowedReservation);
-                await context.Publish(new StockReleasedEvent(message.OrderId, $"Cannot reserve more than 50% of stock for product {item.ProductId}"));
+                await context.Publish(new StockReleasedEvent(message.OrderId, $"Cannot reserve more than 50% of stock for product {item.ProductId}", message.IsVip));
                 return;
             }
 
@@ -96,14 +96,14 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
                         await db.StringDecrementAsync(cacheKey, item.Quantity);
                         
                         _logger.LogWarning("Flash sale items limited to max 2 per customer. CustomerId: {CustomerId}, ProductId: {ProductId}", message.CustomerId, item.ProductId);
-                        await context.Publish(new StockReleasedEvent(message.OrderId, $"Flash sale limit exceeded for product {item.ProductId}"));
+                        await context.Publish(new StockReleasedEvent(message.OrderId, $"Flash sale limit exceeded for product {item.ProductId}", message.IsVip));
                         return;
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to connect to Redis cache for Flash Sale validation. Rejecting order to prevent overselling. CustomerId: {CustomerId}, ProductId: {ProductId}", message.CustomerId, item.ProductId);
-                    await context.Publish(new StockReleasedEvent(message.OrderId, "System error during Flash Sale validation."));
+                    await context.Publish(new StockReleasedEvent(message.OrderId, "System error during Flash Sale validation.", message.IsVip));
                     return;
                 }
             }
@@ -133,13 +133,13 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
             await _dbContext.SaveChangesAsync();
 
             _logger.LogInformation("Stock reserved successfully for OrderId: {OrderId}", message.OrderId);
-            await context.Publish(new StockReservedEvent(message.OrderId, message.TotalAmount, message.PaymentMethod));
+            await context.Publish(new StockReservedEvent(message.OrderId, message.TotalAmount, message.PaymentMethod, message.IsVip));
         }
         catch (DbUpdateConcurrencyException ex)
         {
             _logger.LogError(ex, "Concurrency error occurred while reserving stock for OrderId: {OrderId}", message.OrderId);
             // In a real scenario we could retry, here we fail the reservation.
-            await context.Publish(new StockReleasedEvent(message.OrderId, "Concurrency conflict occurred"));
+            await context.Publish(new StockReleasedEvent(message.OrderId, "Concurrency conflict occurred", message.IsVip));
         }
     }
 }
