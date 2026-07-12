@@ -4,7 +4,7 @@ using MediatR;
 
 namespace OrderService.Api.Application.Orders.Commands;
 
-public record CreateOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice);
+public record CreateOrderItemDto(Guid ProductId, int Quantity);
 
 public record CreateOrderCommand(
     Guid CustomerId, 

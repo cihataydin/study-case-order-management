@@ -85,7 +85,9 @@ public class CheckAvailabilityQueryHandler : IRequestHandler<CheckAvailabilityQu
     }
 }
 
-public record ReserveStockCommand(Guid OrderId, Guid ProductId, int Quantity) : IRequest<bool>;
+public record ReserveStockItemDto(Guid ProductId, int Quantity);
+public record ReserveStockCommand(Guid OrderId, List<ReserveStockItemDto> Items) : IRequest<bool>;
+
 public class ReserveStockCommandHandler : IRequestHandler<ReserveStockCommand, bool>
 {
     private readonly InventoryDbContext _dbContext;
@@ -97,14 +99,29 @@ public class ReserveStockCommandHandler : IRequestHandler<ReserveStockCommand, b
     }
     public async Task<bool> Handle(ReserveStockCommand request, CancellationToken cancellationToken)
     {
-        var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.Id == request.ProductId, cancellationToken);
-        if (product == null || product.TotalStock < request.Quantity) return false;
+        var alreadyReserved = await _dbContext.StockReservations.AnyAsync(r => r.OrderId == request.OrderId, cancellationToken);
+        if (alreadyReserved)
+        {
+            return true;
+        }
+
+        var productIds = request.Items.Select(x => x.ProductId).ToList();
+        var products = await _dbContext.Products.Where(p => productIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, cancellationToken);
         
-        product.TotalStock -= request.Quantity;
-        _dbContext.StockReservations.Add(new Domain.Entities.StockReservation { OrderId = request.OrderId, ProductId = request.ProductId, Quantity = request.Quantity, ExpiresAt = DateTime.UtcNow.AddMinutes(10) });
+        foreach (var item in request.Items)
+        {
+            if (!products.TryGetValue(item.ProductId, out var product) || product.TotalStock < item.Quantity) return false;
+            
+            product.TotalStock -= item.Quantity;
+            _dbContext.StockReservations.Add(new Domain.Entities.StockReservation { OrderId = request.OrderId, ProductId = item.ProductId, Quantity = item.Quantity, ExpiresAt = DateTime.UtcNow.AddMinutes(10) });
+        }
+
         await _dbContext.SaveChangesAsync(cancellationToken);
         
-        await _cache.RemoveAsync($"stock_{request.ProductId}", cancellationToken);
+        foreach (var item in request.Items)
+        {
+            await _cache.RemoveAsync($"stock_{item.ProductId}", cancellationToken);
+        }
         
         return true;
     }

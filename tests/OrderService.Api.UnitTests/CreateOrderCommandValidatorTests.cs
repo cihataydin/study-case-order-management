@@ -23,7 +23,7 @@ public class CreateOrderCommandValidatorTests
         var command = new CreateOrderCommand(
             CustomerId: Guid.NewGuid(),
             IdempotencyKey: "unique-key",
-            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 2, 100.00m) }, // 200 TL
+            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 2) }, // 200 TL
             IsVip: false,
             PaymentMethod: "CreditCard"
         );
@@ -42,7 +42,7 @@ public class CreateOrderCommandValidatorTests
         var command = new CreateOrderCommand(
             CustomerId: Guid.Empty,
             IdempotencyKey: "unique-key",
-            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1, 150.00m) },
+            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: false,
             PaymentMethod: "CreditCard"
         );
@@ -62,7 +62,7 @@ public class CreateOrderCommandValidatorTests
         var command = new CreateOrderCommand(
             CustomerId: Guid.NewGuid(),
             IdempotencyKey: string.Empty,
-            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1, 150.00m) },
+            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: false,
             PaymentMethod: "CreditCard"
         );
@@ -100,7 +100,7 @@ public class CreateOrderCommandValidatorTests
     {
         // Arrange
         var items = Enumerable.Range(0, 21)
-            .Select(_ => new CreateOrderItemDto(Guid.NewGuid(), 1, 10.00m))
+            .Select(_ => new CreateOrderItemDto(Guid.NewGuid(), 1))
             .ToList();
 
         var command = new CreateOrderCommand(
@@ -128,7 +128,7 @@ public class CreateOrderCommandValidatorTests
         var command = new CreateOrderCommand(
             CustomerId: Guid.NewGuid(),
             IdempotencyKey: "unique-key",
-            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1, price) },
+            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: false,
             PaymentMethod: "CreditCard"
         );
@@ -148,7 +148,7 @@ public class CreateOrderCommandValidatorTests
         var command = new CreateOrderCommand(
             CustomerId: Guid.NewGuid(),
             IdempotencyKey: "unique-key",
-            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1, 50001.00m) },
+            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: false,
             PaymentMethod: "CreditCard"
         );
@@ -171,7 +171,7 @@ public class CreateOrderCommandValidatorTests
         var command = new CreateOrderCommand(
             CustomerId: Guid.NewGuid(),
             IdempotencyKey: "unique-key",
-            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1, 150.00m) },
+            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: false,
             PaymentMethod: method
         );
@@ -193,9 +193,9 @@ public class CreateOrderCommandValidatorTests
             IdempotencyKey: "unique-key",
             Items: new List<CreateOrderItemDto>
             {
-                new(Guid.Empty, 1, 150.00m), // Empty ProductId
-                new(Guid.NewGuid(), 0, 150.00m), // Zero Quantity
-                new(Guid.NewGuid(), 1, -10.00m) // Negative Price
+                new(Guid.Empty, 1), // Empty ProductId
+                new(Guid.NewGuid(), 0), // Zero Quantity
+                new(Guid.NewGuid(), 1) // Negative Price
             },
             IsVip: false,
             PaymentMethod: "CreditCard"
