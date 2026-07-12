@@ -49,12 +49,11 @@ public class OrderDatabaseTests : IAsyncLifetime
             CustomerId = customerId,
             IdempotencyKey = "unique-integration-key-123",
             TotalAmount = 250.00m,
-            Status = OrderStatus.Pending,
             Items = new List<OrderItem>
             {
                 new() { ProductId = Guid.NewGuid(), Quantity = 2, UnitPrice = 125.00m }
             }
-        };
+        }.WithStatus(OrderStatus.Pending);
 
         using (var context = new OrderDbContext(options))
         {
@@ -100,18 +99,16 @@ public class OrderDatabaseTests : IAsyncLifetime
             Id = Guid.NewGuid(),
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = idempotencyKey,
-            TotalAmount = 100.00m,
-            Status = OrderStatus.Pending
-        };
+            TotalAmount = 100.00m
+        }.WithStatus(OrderStatus.Pending);
 
         var order2 = new Order
         {
             Id = Guid.NewGuid(),
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = idempotencyKey, // Duplicate Key
-            TotalAmount = 200.00m,
-            Status = OrderStatus.Pending
-        };
+            TotalAmount = 200.00m
+        }.WithStatus(OrderStatus.Pending);
 
         // Act & Assert
         using (var context = new OrderDbContext(options))

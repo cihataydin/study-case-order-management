@@ -26,6 +26,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly OrderMetrics _metrics;
     private readonly IMeterFactory _meterFactory;
+    private readonly Shared.Grpc.InventoryGrpcService.InventoryGrpcServiceClient _inventoryGrpcClient;
     private readonly CreateOrderCommandHandler _handler;
 
     public CreateOrderCommandHandlerTests()
@@ -46,7 +47,26 @@ public class CreateOrderCommandHandlerTests : IDisposable
         _meterFactory.Create(Arg.Any<MeterOptions>()).Returns(meter);
         _metrics = new OrderMetrics(_meterFactory);
 
-        _handler = new CreateOrderCommandHandler(_dbContext, _sendEndpointProvider, _logger, _metrics);
+        _inventoryGrpcClient = Substitute.For<Shared.Grpc.InventoryGrpcService.InventoryGrpcServiceClient>();
+        _inventoryGrpcClient.GetProductPricesAsync(Arg.Any<Shared.Grpc.GetProductPricesRequest>(), Arg.Any<global::Grpc.Core.Metadata>(), Arg.Any<DateTime?>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo => 
+            {
+                var req = callInfo.Arg<Shared.Grpc.GetProductPricesRequest>();
+                var res = new Shared.Grpc.GetProductPricesResponse();
+                foreach (var id in req.ProductIds)
+                {
+                    res.Products.Add(new Shared.Grpc.ProductPriceItem { ProductId = id, Price = 150.0 });
+                }
+                
+                return new global::Grpc.Core.AsyncUnaryCall<Shared.Grpc.GetProductPricesResponse>(
+                    Task.FromResult(res),
+                    Task.FromResult(new global::Grpc.Core.Metadata()),
+                    () => global::Grpc.Core.Status.DefaultSuccess,
+                    () => new global::Grpc.Core.Metadata(),
+                    () => { });
+            });
+
+        _handler = new CreateOrderCommandHandler(_dbContext, _sendEndpointProvider, _logger, _metrics, _inventoryGrpcClient);
     }
 
     [Fact]
@@ -58,8 +78,8 @@ public class CreateOrderCommandHandlerTests : IDisposable
             IdempotencyKey: Guid.NewGuid().ToString(),
             Items: new List<CreateOrderItemDto>
             {
-                new(Guid.NewGuid(), 2, 150.00m),
-                new(Guid.NewGuid(), 1, 200.00m)
+                new(Guid.NewGuid(), 2),
+                new(Guid.NewGuid(), 1)
             },
             IsVip: false,
             PaymentMethod: "CreditCard"
@@ -75,7 +95,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
         Assert.NotNull(order);
         Assert.Equal(command.CustomerId, order.CustomerId);
         Assert.Equal(command.IdempotencyKey, order.IdempotencyKey);
-        Assert.Equal(500.00m, order.TotalAmount); // 2 * 150 + 1 * 200
+        Assert.Equal(450.00m, order.TotalAmount); // 2 * 150 + 1 * 150
         Assert.Equal(OrderStatus.Pending, order.Status);
         Assert.Equal(2, order.Items.Count);
 
@@ -83,11 +103,12 @@ public class CreateOrderCommandHandlerTests : IDisposable
             Arg.Is<OrderCreatedEvent>(e =>
                 e.OrderId == result &&
                 e.CustomerId == command.CustomerId &&
-                e.TotalAmount == 500.00m &&
+                e.TotalAmount == 450.00m &&
                 e.IsVip == false &&
                 e.PaymentMethod == "CreditCard" &&
                 e.Items.Count == 2
             ),
+            Arg.Any<IPipe<SendContext<OrderCreatedEvent>>>(),
             Arg.Any<CancellationToken>()
         );
     }
@@ -99,21 +120,19 @@ public class CreateOrderCommandHandlerTests : IDisposable
         var existingOrderId = Guid.NewGuid();
         var idempotencyKey = "duplicate-key-123";
 
-        var existingOrder = new Order
-        {
+        var existingOrder = new Order {
             Id = existingOrderId,
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = idempotencyKey,
             TotalAmount = 300.00m,
-            Status = OrderStatus.Pending
-        };
+                    }.WithStatus(OrderStatus.Pending);
         _dbContext.Orders.Add(existingOrder);
         await _dbContext.SaveChangesAsync();
 
         var command = new CreateOrderCommand(
             CustomerId: Guid.NewGuid(),
             IdempotencyKey: idempotencyKey,
-            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1, 300.00m) },
+            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: false,
             PaymentMethod: "CreditCard"
         );
@@ -130,6 +149,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
         // Event should not be published again
         await _sendEndpoint.DidNotReceive().Send(
             Arg.Any<OrderCreatedEvent>(),
+            Arg.Any<IPipe<SendContext<OrderCreatedEvent>>>(),
             Arg.Any<CancellationToken>()
         );
     }
@@ -141,7 +161,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
         var command = new CreateOrderCommand(
             CustomerId: Guid.NewGuid(),
             IdempotencyKey: Guid.NewGuid().ToString(),
-            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1, 1000.00m) },
+            Items: new List<CreateOrderItemDto> { new(Guid.NewGuid(), 1) },
             IsVip: true,
             PaymentMethod: "Wallet"
         );
@@ -156,6 +176,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
                 e.IsVip == true &&
                 e.PaymentMethod == "Wallet"
             ),
+            Arg.Any<IPipe<SendContext<OrderCreatedEvent>>>(),
             Arg.Any<CancellationToken>()
         );
     }

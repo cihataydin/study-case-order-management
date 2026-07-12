@@ -45,18 +45,16 @@ public class PaymentFailedEventConsumerTests : IDisposable
         // Arrange
         var orderId = Guid.NewGuid();
         var reason = "Insufficient funds";
-        var order = new Order
-        {
+        var order = new Order {
             Id = orderId,
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = "key1",
             TotalAmount = 250.00m,
-            Status = OrderStatus.Pending
-        };
+                    }.WithStatus(OrderStatus.Pending);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var message = new PaymentFailedEvent(orderId, reason);
+        var message = new PaymentFailedEvent(orderId, reason, false);
         var context = Substitute.For<ConsumeContext<PaymentFailedEvent>>();
         context.Message.Returns(message);
 
@@ -79,7 +77,7 @@ public class PaymentFailedEventConsumerTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var message = new PaymentFailedEvent(orderId, "No funds");
+        var message = new PaymentFailedEvent(orderId, "No funds", false);
         var context = Substitute.For<ConsumeContext<PaymentFailedEvent>>();
         context.Message.Returns(message);
 

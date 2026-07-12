@@ -62,7 +62,7 @@ public class PaymentConsumersTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var message = new StockReservedEvent(orderId, 150.00m, "CreditCard");
+        var message = new StockReservedEvent(orderId, 150.00m, "CreditCard", false);
         var context = Substitute.For<ConsumeContext<StockReservedEvent>>();
         context.Message.Returns(message);
 
@@ -89,7 +89,7 @@ public class PaymentConsumersTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var message = new StockReservedEvent(orderId, 150.00m, "CreditCard");
+        var message = new StockReservedEvent(orderId, 150.00m, "CreditCard", false);
         var context = Substitute.For<ConsumeContext<StockReservedEvent>>();
         context.Message.Returns(message);
 
@@ -115,7 +115,7 @@ public class PaymentConsumersTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var message = new StockReservedEvent(orderId, 150.00m, "CreditCard");
+        var message = new StockReservedEvent(orderId, 150.00m, "CreditCard", false);
         var context = Substitute.For<ConsumeContext<StockReservedEvent>>();
         context.Message.Returns(message);
 
@@ -150,7 +150,7 @@ public class PaymentConsumersTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var message = new StockReservedEvent(orderId, 15000.00m, "CreditCard"); // > 10,000
+        var message = new StockReservedEvent(orderId, 15000.00m, "CreditCard", false); // > 10,000
         var context = Substitute.For<ConsumeContext<StockReservedEvent>>();
         context.Message.Returns(message);
 

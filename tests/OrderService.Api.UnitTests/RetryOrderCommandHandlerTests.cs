@@ -50,14 +50,14 @@ public class RetryOrderCommandHandlerTests : IDisposable
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = "retry-key",
             TotalAmount = 250.00m,
-            Status = OrderStatus.Failed,
+            /* Status = OrderStatus.Failed */
             IsVip = false,
             PaymentMethod = "CreditCard",
             Items = new List<OrderItem>
             {
                 new() { ProductId = Guid.NewGuid(), Quantity = 2, UnitPrice = 125.00m }
             }
-        };
+        }.WithStatus(OrderStatus.Failed);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
@@ -110,24 +110,22 @@ public class RetryOrderCommandHandlerTests : IDisposable
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var order = new Order
-        {
+        var order = new Order {
             Id = orderId,
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = "retry-key-" + status,
             TotalAmount = 250.00m,
-            Status = status
-        };
+                    }.WithStatus(status);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
         var command = new RetryOrderCommand(orderId);
 
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _handler.Handle(command, CancellationToken.None)
+        );
 
-        // Assert
-        Assert.False(result);
         await _sendEndpoint.DidNotReceive().Send(Arg.Any<OrderCreatedEvent>(), Arg.Any<CancellationToken>());
     }
 

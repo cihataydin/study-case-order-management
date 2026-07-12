@@ -38,15 +38,13 @@ public class CancelOrderCommandHandlerTests : IDisposable
     public async Task Handle_WithValidPendingOrder_ShouldCancelAndPublishEvent()
     {
         // Arrange
-        var order = new Order
-        {
+        var order = new Order {
             Id = Guid.NewGuid(),
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = "key1",
             TotalAmount = 200.00m,
-            Status = OrderStatus.Pending,
-            CreatedAt = DateTime.UtcNow
-        };
+                        CreatedAt = DateTime.UtcNow
+        }.WithStatus(OrderStatus.Pending);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
@@ -86,15 +84,13 @@ public class CancelOrderCommandHandlerTests : IDisposable
     public async Task Handle_OrderOlderThanTwoHours_ShouldThrowInvalidOperationException()
     {
         // Arrange
-        var order = new Order
-        {
+        var order = new Order {
             Id = Guid.NewGuid(),
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = "key2",
             TotalAmount = 200.00m,
-            Status = OrderStatus.Pending,
-            CreatedAt = DateTime.UtcNow.AddHours(-3) // 3 hours ago
-        };
+                        CreatedAt = DateTime.UtcNow.AddHours(-3) // 3 hours ago
+        }.WithStatus(OrderStatus.Pending);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
@@ -117,25 +113,23 @@ public class CancelOrderCommandHandlerTests : IDisposable
     public async Task Handle_OrderAlreadyCancelledOrDelivered_ShouldReturnFalse(OrderStatus status)
     {
         // Arrange
-        var order = new Order
-        {
+        var order = new Order {
             Id = Guid.NewGuid(),
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = "key3-" + status,
             TotalAmount = 200.00m,
-            Status = status,
-            CreatedAt = DateTime.UtcNow
-        };
+                        CreatedAt = DateTime.UtcNow
+        }.WithStatus(status);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
         var command = new CancelOrderCommand(order.Id);
 
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _handler.Handle(command, CancellationToken.None)
+        );
 
-        // Assert
-        Assert.False(result);
         await _publishEndpoint.DidNotReceive().Publish(Arg.Any<OrderCancelledEvent>(), Arg.Any<CancellationToken>());
     }
 

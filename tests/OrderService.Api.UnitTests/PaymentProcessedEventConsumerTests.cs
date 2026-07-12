@@ -45,18 +45,16 @@ public class PaymentProcessedEventConsumerTests : IDisposable
         // Arrange
         var orderId = Guid.NewGuid();
         var paymentId = Guid.NewGuid();
-        var order = new Order
-        {
+        var order = new Order {
             Id = orderId,
             CustomerId = Guid.NewGuid(),
             IdempotencyKey = "key1",
             TotalAmount = 250.00m,
-            Status = OrderStatus.Pending
-        };
+                    }.WithStatus(OrderStatus.Pending);
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
 
-        var message = new PaymentProcessedEvent(orderId, paymentId);
+        var message = new PaymentProcessedEvent(orderId, paymentId, false);
         var context = Substitute.For<ConsumeContext<PaymentProcessedEvent>>();
         context.Message.Returns(message);
 
@@ -80,7 +78,7 @@ public class PaymentProcessedEventConsumerTests : IDisposable
         // Arrange
         var orderId = Guid.NewGuid();
         var paymentId = Guid.NewGuid();
-        var message = new PaymentProcessedEvent(orderId, paymentId);
+        var message = new PaymentProcessedEvent(orderId, paymentId, false);
         var context = Substitute.For<ConsumeContext<PaymentProcessedEvent>>();
         context.Message.Returns(message);
 
