@@ -104,7 +104,7 @@ namespace Shared.Middlewares
                 ip = context.Connection.RemoteIpAddress?.ToString(),
                 path = context.Request.Path,
                 baseUrl = $"{context.Request.Scheme}://{context.Request.Host}",
-                body = new { },  // Response does not have a request body to log here
+                body = new { },
                 headers = context.Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()),
                 timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                 traceId = context.TraceIdentifier,

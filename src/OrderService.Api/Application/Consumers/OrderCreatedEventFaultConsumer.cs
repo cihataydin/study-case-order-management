@@ -9,13 +9,6 @@ using Shared.Events;
 
 namespace OrderService.Api.Application.Consumers;
 
-/// <summary>
-/// This consumer acts as a Dead Letter Queue (DLQ) handler.
-/// If InventoryService or any other consumer permanently fails to process OrderCreatedEvent
-/// (after all retries are exhausted) and the message is moved to the _error queue,
-/// MassTransit automatically publishes a Fault<OrderCreatedEvent>.
-/// We capture this fault here to formally cancel the order and alert the system.
-/// </summary>
 public class OrderCreatedEventFaultConsumer : IConsumer<Fault<OrderCreatedEvent>>
 {
     private readonly OrderDbContext _dbContext;
@@ -29,8 +22,8 @@ public class OrderCreatedEventFaultConsumer : IConsumer<Fault<OrderCreatedEvent>
 
     public async Task Consume(ConsumeContext<Fault<OrderCreatedEvent>> context)
     {
-        var message = context.Message.Message; // The original event that failed
-        var exceptions = context.Message.Exceptions; // The exceptions that caused the failure
+        var message = context.Message.Message;
+        var exceptions = context.Message.Exceptions;
         
         _logger.LogError("DLQ Triggered: OrderCreatedEvent failed permanently for OrderId: {OrderId}. Exceptions: {Exceptions}", 
             message.OrderId, string.Join(", ", exceptions.Select(e => e.Message)));

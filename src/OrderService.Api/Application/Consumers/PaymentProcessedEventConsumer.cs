@@ -34,7 +34,7 @@ public class PaymentProcessedEventConsumer : IConsumer<PaymentProcessedEvent>
             if (order.Status != OrderStatus.Pending)
             {
                 _logger.LogWarning("Order {OrderId} is in {Status} status. Ignoring PaymentProcessedEvent.", message.OrderId, order.Status);
-                // If payment was processed but order was cancelled, we should trigger a refund
+
                 if (order.Status == OrderStatus.Cancelled || order.Status == OrderStatus.Failed)
                 {
                     await context.Publish(new OrderCancelledEvent(message.OrderId, "Late payment success for cancelled order"));

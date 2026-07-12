@@ -96,7 +96,7 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
         if (amount > 10000)
         {
             _logger.LogInformation("Simulating additional fraud verification...");
-            await Task.Delay(1000); // simulate verification time
+            await Task.Delay(1000);
         }
 
         var chance = RandomGenerator.Next(1, 101);
@@ -111,7 +111,7 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
         }
         else
         {
-            return false; // Simulated failure
+            return false;
         }
     }
 }

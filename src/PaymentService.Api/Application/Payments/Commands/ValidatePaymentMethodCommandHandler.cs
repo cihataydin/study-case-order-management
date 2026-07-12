@@ -11,9 +11,9 @@ public class ValidatePaymentMethodCommandHandler : IRequestHandler<ValidatePayme
     {
         bool isValid = request.Method switch
         {
-            PaymentMethod.CreditCard => request.Identifier?.Length == 16, // Mock: Card must be 16 digits
-            PaymentMethod.Wallet => !string.IsNullOrEmpty(request.Identifier), // Mock: Just checking if wallet ID exists
-            PaymentMethod.BankTransfer => request.Identifier?.Length == 26 && request.Identifier.StartsWith("TR"), // Mock: Simple IBAN validation
+            PaymentMethod.CreditCard => request.Identifier?.Length == 16,
+            PaymentMethod.Wallet => !string.IsNullOrEmpty(request.Identifier),
+            PaymentMethod.BankTransfer => request.Identifier?.Length == 26 && request.Identifier.StartsWith("TR"),
             _ => false
         };
 

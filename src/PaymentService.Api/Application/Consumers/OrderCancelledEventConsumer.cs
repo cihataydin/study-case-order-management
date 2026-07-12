@@ -43,8 +43,6 @@ public class OrderCancelledEventConsumer : IConsumer<OrderCancelledEvent>
         }
         else
         {
-            // Payment doesn't exist yet, it means cancellation arrived before StockReservedEvent (or payment was never created).
-            // We create a ghost record to block StockReservedEventConsumer from processing it.
             _logger.LogInformation("Payment not found for OrderId: {OrderId}. Creating ghost record to prevent future processing.", message.OrderId);
             payment = new Payment
             {

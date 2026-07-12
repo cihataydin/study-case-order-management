@@ -22,11 +22,10 @@ public static class InventoryDbSeeder
             {
                 Id = guid,
                 Name = $"Product {i}",
-                Price = Math.Round((decimal)(random.NextDouble() * 4950 + 50), 2) // 50 to 5000
+                Price = Math.Round((decimal)(random.NextDouble() * 4950 + 50), 2)
             };
             product.IncreaseStock(random.Next(10, 1000));
             
-            // Insert via Raw SQL to bypass EF Core ignoring IsRowVersion fields on Insert
             var versionBytes = Guid.NewGuid().ToByteArray();
             var sql = @"INSERT INTO ""Products"" (""Id"", ""Name"", ""Price"", ""TotalStock"", ""Version"") VALUES (@p0, @p1, @p2, @p3, @p4)";
             await context.Database.ExecuteSqlRawAsync(sql, product.Id, product.Name, product.Price, product.TotalStock, versionBytes);

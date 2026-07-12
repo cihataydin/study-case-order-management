@@ -11,11 +11,6 @@ using PaymentService.Api.Infrastructure.Data;
 
 namespace PaymentService.Api.BackgroundServices;
 
-/// <summary>
-/// This BackgroundService simulates the 3-5 business days refund process asynchronously.
-/// In a real production environment, this would process batches of pending refunds and 
-/// communicate with the actual Bank/Payment Gateway APIs.
-/// </summary>
 public class RefundProcessingWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
@@ -42,8 +37,7 @@ public class RefundProcessingWorker : BackgroundService
                 _logger.LogError(ex, "Error occurred processing refunds.");
             }
 
-            // In production, this would run maybe once a day. For simulation, every 30 seconds.
-            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            await Task.Delay(TimeSpan.FromDays(1), stoppingToken);
         }
     }
 
@@ -52,13 +46,11 @@ public class RefundProcessingWorker : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<PaymentDbContext>();
 
-        // We simulate a 3-5 day wait by checking if the refund has been pending for more than a set time.
-        // For testing/simulation purposes, we use a much shorter timespan (e.g., 1 minute).
-        var thresholdDate = DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(1)); // SIMULATION: 1 minute instead of 3 days
+        var thresholdDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(5));
 
         var pendingRefunds = await dbContext.Payments
             .Where(p => p.Status == PaymentStatus.RefundPending && p.UpdatedAt <= thresholdDate)
-            .Take(50) // Batch size
+            .Take(50)
             .ToListAsync(stoppingToken);
 
         if (pendingRefunds.Any())
