@@ -1,6 +1,6 @@
 using AutoMapper;
 using PaymentService.Api.Domain.Entities;
-using PaymentService.Api.Application.Payments.Features;
+using PaymentService.Api.Application.Payments.Dtos;
 
 namespace PaymentService.Api.Application.Mapping;
 

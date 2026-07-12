@@ -1,8 +1,11 @@
 using System;
+using NSubstitute;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using PaymentService.Api.Application.Payments.Features;
+using PaymentService.Api.Application.Payments.Commands;
+using PaymentService.Api.Application.Payments.Queries;
+using PaymentService.Api.Application.Payments.Dtos;
 using PaymentService.Api.Domain.Entities;
 using PaymentService.Api.Domain.Enums;
 using PaymentService.Api.Infrastructure.Data;
@@ -38,7 +41,12 @@ public class PaymentFeaturesTests : IDisposable
         _dbContext.Payments.Add(payment);
         await _dbContext.SaveChangesAsync();
 
-        var handler = new GetPaymentStatusQueryHandler(_dbContext);
+        var mapper = Substitute.For<AutoMapper.IMapper>();
+        mapper.Map<PaymentDto>(Arg.Any<Payment>()).Returns(c => {
+            var p = c.Arg<Payment>();
+            return new PaymentDto(p.Id, p.OrderId, p.Amount, p.Status, p.Method, p.CreatedAt, p.UpdatedAt);
+        });
+        var handler = new GetPaymentStatusQueryHandler(_dbContext, mapper);
 
         // Act
         var result = await handler.Handle(new GetPaymentStatusQuery(paymentId), CancellationToken.None);
@@ -53,7 +61,8 @@ public class PaymentFeaturesTests : IDisposable
     public async Task GetPaymentStatus_WithNonExistentPayment_ShouldReturnNull()
     {
         // Arrange
-        var handler = new GetPaymentStatusQueryHandler(_dbContext);
+        var mapper = Substitute.For<AutoMapper.IMapper>();
+        var handler = new GetPaymentStatusQueryHandler(_dbContext, mapper);
 
         // Act
         var result = await handler.Handle(new GetPaymentStatusQuery(Guid.NewGuid()), CancellationToken.None);
