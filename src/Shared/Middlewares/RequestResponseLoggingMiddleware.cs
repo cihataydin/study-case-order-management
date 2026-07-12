@@ -36,7 +36,10 @@ namespace Shared.Middlewares
         /// </summary>
         public async Task InvokeAsync(HttpContext context)
         {
-            if (context.Request.ContentType?.StartsWith("application/grpc", StringComparison.OrdinalIgnoreCase) == true)
+            var path = context.Request.Path.Value ?? string.Empty;
+            if (context.Request.ContentType?.StartsWith("application/grpc", StringComparison.OrdinalIgnoreCase) == true ||
+                path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/health", StringComparison.OrdinalIgnoreCase))
             {
                 await _next(context);
                 return;

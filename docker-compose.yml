@@ -72,9 +72,70 @@ services:
     networks:
       - ecommerce-network
 
+  order-api:
+    build:
+      context: .
+      dockerfile: src/OrderService.Api/Dockerfile
+    container_name: ecommerce-order-api
+    ports:
+      - "5277:5277"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ecommerce_order_db;Username=root;Password=rootpassword
+      - RabbitMQ__Host=rabbitmq
+      - InventoryServiceUrl=http://inventory-api:5051
+      - Otlp__Endpoint=http://jaeger:4317
+    depends_on:
+      - postgres
+      - rabbitmq
+    profiles: ["apps"]
+    networks:
+      - ecommerce-network
+
+  inventory-api:
+    build:
+      context: .
+      dockerfile: src/InventoryService.Api/Dockerfile
+    container_name: ecommerce-inventory-api
+    ports:
+      - "5050:5050"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ecommerce_inventory_db;Username=root;Password=rootpassword
+      - RabbitMQ__Host=rabbitmq
+      - Redis__ConnectionString=redis:6379
+      - Otlp__Endpoint=http://jaeger:4317
+    depends_on:
+      - postgres
+      - rabbitmq
+      - redis
+    profiles: ["apps"]
+    networks:
+      - ecommerce-network
+
+  payment-api:
+    build:
+      context: .
+      dockerfile: src/PaymentService.Api/Dockerfile
+    container_name: ecommerce-payment-api
+    ports:
+      - "5032:5032"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ecommerce_payment_db;Username=root;Password=rootpassword
+      - RabbitMQ__Host=rabbitmq
+      - Otlp__Endpoint=http://jaeger:4317
+    depends_on:
+      - postgres
+      - rabbitmq
+    profiles: ["apps"]
+    networks:
+      - ecommerce-network
+
 networks:
   ecommerce-network:
     driver: bridge
 
 volumes:
   postgres_data:
+
