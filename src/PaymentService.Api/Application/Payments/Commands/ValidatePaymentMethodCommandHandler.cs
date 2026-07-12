@@ -9,7 +9,6 @@ public class ValidatePaymentMethodCommandHandler : IRequestHandler<ValidatePayme
 {
     public Task<bool> Handle(ValidatePaymentMethodCommand request, CancellationToken cancellationToken)
     {
-        // Case Study Requirement: "Multiple payment methods support (Credit Card, Wallet, Bank Transfer)"
         bool isValid = request.Method switch
         {
             PaymentMethod.CreditCard => request.Identifier?.Length == 16, // Mock: Card must be 16 digits

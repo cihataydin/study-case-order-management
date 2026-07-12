@@ -36,7 +36,6 @@ public class StockReservationCleanupWorker : BackgroundService
                 _logger.LogError(ex, "Error occurred executing StockReservationCleanupWorker.");
             }
 
-            // Check every 1 minute
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
 

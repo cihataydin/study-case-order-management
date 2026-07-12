@@ -10,9 +10,6 @@ namespace Shared.Middlewares
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
-    /// <summary>
-    /// Represents the request response logging middleware.
-    /// </summary>
     public class RequestResponseLoggingMiddleware
     {
         private readonly RequestDelegate _next;
@@ -21,9 +18,6 @@ namespace Shared.Middlewares
 
         private bool _useJsonFormat;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RequestResponseLoggingMiddleware"/> class.
-        /// </summary>
         public RequestResponseLoggingMiddleware(RequestDelegate next, IConfiguration configuration, ILogger<RequestResponseLoggingMiddleware> logger)
         {
             _next = next;
@@ -31,9 +25,6 @@ namespace Shared.Middlewares
             _logger = logger;
         }
 
-        /// <summary>
-        /// Invokes the request response logging middleware.
-        /// </summary>
         public async Task InvokeAsync(HttpContext context)
         {
             var path = context.Request.Path.Value ?? string.Empty;

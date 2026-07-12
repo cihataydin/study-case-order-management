@@ -93,7 +93,6 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
 
     private async Task<bool> SimulatePaymentAsync(decimal amount)
     {
-        // Fraud detection simulation (Orders > 10,000 TL require additional verification)
         if (amount > 10000)
         {
             _logger.LogInformation("Simulating additional fraud verification...");
@@ -102,7 +101,6 @@ public class StockReservedEventConsumer : IConsumer<StockReservedEvent>
 
         var chance = RandomGenerator.Next(1, 101);
         
-        // %85 success, %10 timeout, %5 failure
         if (chance <= 85)
         {
             return true;

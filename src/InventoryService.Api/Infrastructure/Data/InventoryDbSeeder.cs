@@ -15,7 +15,6 @@ public static class InventoryDbSeeder
         var products = new List<Product>();
         var random = new Random(42);
 
-        // Generate 50 Hardcoded Products with predictable IDs
         for (int i = 1; i <= 50; i++)
         {
             var guid = Guid.Parse($"11111111-1111-1111-1111-{i.ToString("D12")}");

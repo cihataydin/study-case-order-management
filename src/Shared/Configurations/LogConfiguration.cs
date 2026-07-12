@@ -7,16 +7,8 @@ using Shared.Constants;
 
 namespace Shared.Configurations
 {
-    /// <summary>
-    /// Represents the log configuration.
-    /// </summary>
     public static class LogConfiguration
     {
-        /// <summary>
-        /// Initializes the log configuration.
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="applicationName">The application name to use for log files.</param>
         public static void Initialize(IConfiguration configuration, string applicationName)
         {
             const string template = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}";

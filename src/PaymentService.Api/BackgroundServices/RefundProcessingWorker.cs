@@ -67,8 +67,6 @@ public class RefundProcessingWorker : BackgroundService
 
             foreach (var payment in pendingRefunds)
             {
-                // Call external bank API here...
-                // Assuming successful refund:
                 payment.Status = PaymentStatus.Reversed;
                 payment.UpdatedAt = DateTime.UtcNow;
                 

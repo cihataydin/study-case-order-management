@@ -34,7 +34,6 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddGrpcClient<InventoryGrpcService.InventoryGrpcServiceClient>(options =>
 {
-    // Getting URL from configuration or default to localhost
     options.Address = new Uri(builder.Configuration["InventoryServiceUrl"] ?? "http://localhost:5050");
 }).AddStandardResilienceHandler();
 

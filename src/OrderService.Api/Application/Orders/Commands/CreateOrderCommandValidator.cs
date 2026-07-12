@@ -25,7 +25,6 @@ public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
         {
             items.RuleFor(i => i.ProductId).NotEmpty();
             items.RuleFor(i => i.Quantity).GreaterThan(0);
-            // items.RuleFor(i => i.UnitPrice).GreaterThanOrEqualTo(0);
         });
     }
 }

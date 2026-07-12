@@ -77,7 +77,6 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
                 return;
             }
 
-            // Low stock alert when quantity < 10
             if (product.TotalStock < 10)
             {
                 _logger.LogWarning("LOW STOCK ALERT: Product {ProductId} has only {Stock} remaining!", product.Id, product.TotalStock);
@@ -105,7 +104,6 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
         catch (DbUpdateConcurrencyException ex)
         {
             _logger.LogError(ex, "Concurrency error occurred while reserving stock for OrderId: {OrderId}", message.OrderId);
-            // In a real scenario we could retry, here we fail the reservation.
             await context.Publish(new StockReleasedEvent(message.OrderId, "Concurrency conflict occurred", message.IsVip));
         }
     }

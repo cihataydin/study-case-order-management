@@ -41,8 +41,6 @@ public class OrderCreatedEventFaultConsumer : IConsumer<Fault<OrderCreatedEvent>
         {
             order.MarkAsFailed();
             
-            // Note: We could save the exact reason to a new property like order.FailureReason if it existed in the domain
-            
             await _dbContext.SaveChangesAsync();
             
             _logger.LogInformation("Order {OrderId} status updated to Cancelled due to DLQ fault.", message.OrderId);
