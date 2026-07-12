@@ -20,10 +20,16 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderCommand request)
+    public async Task<IActionResult> CreateOrder([FromHeader(Name = "X-Idempotency-Key")] string idempotencyKey, [FromBody] CreateOrderCommand request)
     {
-        var orderId = await _mediator.Send(request);
-        return Ok(new { OrderId = orderId });
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            return BadRequest(new ProblemDetails { Title = "Missing Idempotency Key", Detail = "X-Idempotency-Key header is required." });
+        }
+
+        var command = request with { IdempotencyKey = idempotencyKey };
+        var orderId = await _mediator.Send(command);
+        return CreatedAtAction(nameof(GetOrderDetails), new { orderId = orderId }, new { OrderId = orderId });
     }
 
     [HttpGet("{orderId:guid}")]
@@ -40,20 +46,20 @@ public class OrdersController : ControllerBase
         try 
         {
             var result = await _mediator.Send(new CancelOrderCommand(orderId));
-            if (!result) return BadRequest(new { Message = "Order could not be cancelled. It may not exist or is already completed." });
-            return Ok(new { Message = "Order cancelled successfully." });
+            if (!result) return BadRequest(new ProblemDetails { Title = "Cancellation Failed", Detail = "Order could not be cancelled. It may not exist or is already completed." });
+            return NoContent();
         }
         catch(InvalidOperationException ex)
         {
-            return BadRequest(new { Message = ex.Message });
+            return BadRequest(new ProblemDetails { Title = "Invalid Operation", Detail = ex.Message });
         }
     }
 
     [HttpGet("customer/{customerId:guid}")]
-    public async Task<IActionResult> ListCustomerOrders(Guid customerId)
+    public async Task<IActionResult> ListCustomerOrders(Guid customerId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
-        var orders = await _mediator.Send(new ListCustomerOrdersQuery(customerId));
-        return Ok(orders);
+        var result = await _mediator.Send(new ListCustomerOrdersQuery(customerId, pageNumber, pageSize));
+        return Ok(result);
     }
 
 
@@ -62,9 +68,9 @@ public class OrdersController : ControllerBase
     {
         var result = await _mediator.Send(new RetryOrderCommand(orderId));
         if (result)
-            return Ok(new { Message = "Order retry initiated." });
+            return NoContent();
             
-        return BadRequest(new { Message = $"Order {orderId} is not Failed. Only failed orders can be retried." });
+        return BadRequest(new ProblemDetails { Title = "Retry Failed", Detail = $"Order {orderId} is not Failed. Only failed orders can be retried." });
     }
 
     // Architectural Note: The API specifications in the case document did not define endpoints
@@ -78,12 +84,12 @@ public class OrdersController : ControllerBase
         try 
         {
             var result = await _mediator.Send(new ShipOrderCommand(orderId));
-            if (!result) return BadRequest(new { Message = "Order could not be shipped. It may not exist." });
-            return Ok(new { Message = "Order shipped successfully." });
+            if (!result) return BadRequest(new ProblemDetails { Title = "Shipping Failed", Detail = "Order could not be shipped. It may not exist." });
+            return NoContent();
         }
         catch(InvalidOperationException ex)
         {
-            return BadRequest(new { Message = ex.Message });
+            return BadRequest(new ProblemDetails { Title = "Invalid Operation", Detail = ex.Message });
         }
     }
 
@@ -93,12 +99,12 @@ public class OrdersController : ControllerBase
         try 
         {
             var result = await _mediator.Send(new DeliverOrderCommand(orderId));
-            if (!result) return BadRequest(new { Message = "Order could not be delivered. It may not exist." });
-            return Ok(new { Message = "Order delivered successfully." });
+            if (!result) return BadRequest(new ProblemDetails { Title = "Delivery Failed", Detail = "Order could not be delivered. It may not exist." });
+            return NoContent();
         }
         catch(InvalidOperationException ex)
         {
-            return BadRequest(new { Message = ex.Message });
+            return BadRequest(new ProblemDetails { Title = "Invalid Operation", Detail = ex.Message });
         }
     }
 }

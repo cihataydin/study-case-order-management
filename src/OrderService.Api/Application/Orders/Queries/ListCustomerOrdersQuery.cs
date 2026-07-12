@@ -11,9 +11,11 @@ using AutoMapper;
 
 namespace OrderService.Api.Application.Orders.Queries;
 
-public record ListCustomerOrdersQuery(Guid CustomerId) : IRequest<List<OrderDto>>;
+public record PagedResult<T>(List<T> Items, int TotalCount, int PageNumber, int PageSize);
 
-public class ListCustomerOrdersQueryHandler : IRequestHandler<ListCustomerOrdersQuery, List<OrderDto>>
+public record ListCustomerOrdersQuery(Guid CustomerId, int PageNumber = 1, int PageSize = 10) : IRequest<PagedResult<OrderDto>>;
+
+public class ListCustomerOrdersQueryHandler : IRequestHandler<ListCustomerOrdersQuery, PagedResult<OrderDto>>
 {
     private readonly OrderDbContext _dbContext;
     private readonly IMapper _mapper;
@@ -24,15 +26,22 @@ public class ListCustomerOrdersQueryHandler : IRequestHandler<ListCustomerOrders
         _mapper = mapper;
     }
 
-    public async Task<List<OrderDto>> Handle(ListCustomerOrdersQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<OrderDto>> Handle(ListCustomerOrdersQuery request, CancellationToken cancellationToken)
     {
-        var orders = await _dbContext.Orders
+        var query = _dbContext.Orders
+            .Where(o => o.CustomerId == request.CustomerId);
+            
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var orders = await query
             .Include(o => o.Items)
-            .Where(o => o.CustomerId == request.CustomerId)
             .OrderByDescending(o => o.CreatedAt)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
             
-        return _mapper.Map<List<OrderDto>>(orders);
+        var items = _mapper.Map<List<OrderDto>>(orders);
+        return new PagedResult<OrderDto>(items, totalCount, request.PageNumber, request.PageSize);
     }
 }

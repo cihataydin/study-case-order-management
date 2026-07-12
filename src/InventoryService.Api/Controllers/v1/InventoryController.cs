@@ -27,16 +27,16 @@ public class InventoryController : ControllerBase
     public async Task<IActionResult> ReserveStock([FromBody] ReserveStockCommand request)
     {
         var result = await _mediator.Send(request);
-        if (result) return Ok(new { Message = "Stock reserved manually." });
-        return BadRequest(new { Message = "Could not reserve stock." });
+        if (result) return NoContent();
+        return BadRequest(new ProblemDetails { Title = "Reservation Failed", Detail = "Could not reserve stock." });
     }
 
     [HttpPost("release")]
     public async Task<IActionResult> ReleaseReservation([FromBody] ReleaseReservationCommand request)
     {
         var result = await _mediator.Send(request);
-        if (result) return Ok(new { Message = "Reservation released manually." });
-        return BadRequest(new { Message = "Could not release reservation. It may not exist." });
+        if (result) return NoContent();
+        return BadRequest(new ProblemDetails { Title = "Release Failed", Detail = "Could not release reservation. It may not exist." });
     }
 
 
@@ -56,9 +56,9 @@ public class InventoryController : ControllerBase
 
         if (!isSuccess)
         {
-            return BadRequest(new { Message = "Stok güncellemesi sırasında bir çakışma (Concurrency) oluştu veya işlem başarısız oldu." });
+            return BadRequest(new ProblemDetails { Title = "Update Failed", Detail = "Stok güncellemesi sırasında bir çakışma (Concurrency) oluştu veya işlem başarısız oldu." });
         }
 
-        return Ok(new { Message = "Toplu stok güncellemesi başarıyla tamamlandı." });
+        return NoContent();
     }
 }

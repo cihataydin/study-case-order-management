@@ -20,16 +20,16 @@ public class PaymentsController : ControllerBase
     public async Task<IActionResult> ProcessPayment([FromBody] ProcessPaymentCommand request)
     {
         var result = await _mediator.Send(request);
-        if (result) return Ok(new { Message = "Payment processed manually." });
-        return BadRequest(new { Message = "Payment processing failed." });
+        if (result) return NoContent();
+        return BadRequest(new ProblemDetails { Title = "Processing Failed", Detail = "Payment processing failed." });
     }
 
     [HttpPost("refund")]
     public async Task<IActionResult> ProcessRefund([FromBody] ProcessRefundCommand request)
     {
         var result = await _mediator.Send(request);
-        if (result) return Ok(new { Message = "Refund processed successfully" });
-        return BadRequest(new { Message = "Refund could not be processed" });
+        if (result) return NoContent();
+        return BadRequest(new ProblemDetails { Title = "Refund Failed", Detail = "Refund could not be processed" });
     }
 
     [HttpGet("{paymentId:guid}")]
