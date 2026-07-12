@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 
 using MediatR;
-using InventoryService.Api.Application.Inventory.Features;
+using InventoryService.Api.Application.Inventory.Commands;
+using InventoryService.Api.Application.Inventory.Queries;
+using InventoryService.Api.Application.Inventory.Dtos;
 
 namespace InventoryService.Api.Controllers.v1;
 

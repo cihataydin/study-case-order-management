@@ -45,7 +45,7 @@ public class OrderCancelledEventConsumer : IConsumer<OrderCancelledEvent>
             {
                 if (products.TryGetValue(item.ProductId, out var product))
                 {
-                    product.TotalStock += item.Quantity;
+                    product.IncreaseStock(item.Quantity);
                     _logger.LogInformation("Released {Quantity} stock for ProductId: {ProductId}", item.Quantity, item.ProductId);
                 }
             }
@@ -61,7 +61,7 @@ public class OrderCancelledEventConsumer : IConsumer<OrderCancelledEvent>
             {
                 if (products.TryGetValue(reservation.ProductId, out var product))
                 {
-                    product.TotalStock += reservation.Quantity;
+                    product.IncreaseStock(reservation.Quantity);
                     _logger.LogInformation("Released {Quantity} stock for ProductId: {ProductId} (fallback)", reservation.Quantity, reservation.ProductId);
                 }
             }

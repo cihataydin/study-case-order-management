@@ -108,7 +108,7 @@ public class OrderCreatedEventConsumer : IConsumer<OrderCreatedEvent>
                 }
             }
 
-            product.TotalStock -= item.Quantity;
+            product.DecreaseStock(item.Quantity);
 
             // Low stock alert when quantity < 10
             if (product.TotalStock < 10)

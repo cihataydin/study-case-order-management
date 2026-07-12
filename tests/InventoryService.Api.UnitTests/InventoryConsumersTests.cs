@@ -49,7 +49,8 @@ public class InventoryConsumersTests : IDisposable
         // Arrange
         var productId = Guid.NewGuid();
         var orderId = Guid.NewGuid();
-        var product = new Product { Id = productId, Name = "Regular Product", TotalStock = 20, Version = Array.Empty<byte>() };
+        var product = new Product { Id = productId, Name = "Regular Product", Version = Array.Empty<byte>() };
+        product.IncreaseStock(20);
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync();
 
@@ -90,7 +91,8 @@ public class InventoryConsumersTests : IDisposable
         // Arrange
         var productId = Guid.NewGuid();
         var orderId = Guid.NewGuid();
-        var product = new Product { Id = productId, Name = "Regular Product", TotalStock = 20, Version = Array.Empty<byte>() };
+        var product = new Product { Id = productId, Name = "Regular Product", Version = Array.Empty<byte>() };
+        product.IncreaseStock(20);
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync();
 
@@ -131,7 +133,8 @@ public class InventoryConsumersTests : IDisposable
         var productId = Guid.NewGuid();
         var orderId = Guid.NewGuid();
         // Product name contains "Flash" to trigger flash sale logic
-        var product = new Product { Id = productId, Name = "Flash Sale iPhone", TotalStock = 100, Version = Array.Empty<byte>() };
+        var product = new Product { Id = productId, Name = "Flash Sale iPhone", Version = Array.Empty<byte>() };
+        product.IncreaseStock(100);
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync();
 
@@ -200,7 +203,8 @@ public class InventoryConsumersTests : IDisposable
         // Arrange
         var productId = Guid.NewGuid();
         var orderId = Guid.NewGuid();
-        var product = new Product { Id = productId, Name = "Regular Product", TotalStock = 15, Version = Array.Empty<byte>() };
+        var product = new Product { Id = productId, Name = "Regular Product", Version = Array.Empty<byte>() };
+        product.IncreaseStock(15);
         var reservation = new StockReservation { OrderId = orderId, ProductId = productId, Quantity = 5, ExpiresAt = DateTime.UtcNow.AddMinutes(10) };
         _dbContext.Products.Add(product);
         _dbContext.StockReservations.Add(reservation);
@@ -229,7 +233,8 @@ public class InventoryConsumersTests : IDisposable
         // Arrange
         var productId = Guid.NewGuid();
         var orderId = Guid.NewGuid();
-        var product = new Product { Id = productId, Name = "Regular Product", TotalStock = 15, Version = Array.Empty<byte>() };
+        var product = new Product { Id = productId, Name = "Regular Product", Version = Array.Empty<byte>() };
+        product.IncreaseStock(15);
         var reservation = new StockReservation { OrderId = orderId, ProductId = productId, Quantity = 5, ExpiresAt = DateTime.UtcNow.AddMinutes(10) };
         _dbContext.Products.Add(product);
         _dbContext.StockReservations.Add(reservation);

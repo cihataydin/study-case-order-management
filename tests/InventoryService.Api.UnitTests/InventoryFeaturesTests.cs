@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute;
-using InventoryService.Api.Application.Inventory.Features;
+using InventoryService.Api.Application.Inventory.Commands;
+using InventoryService.Api.Application.Inventory.Queries;
+using InventoryService.Api.Application.Inventory.Dtos;
 using InventoryService.Api.Domain.Entities;
 using InventoryService.Api.Infrastructure.Data;
 using Xunit;
@@ -55,7 +57,8 @@ public class InventoryFeaturesTests : IDisposable
     {
         // Arrange
         var productId = Guid.NewGuid();
-        var product = new Product { Id = productId, Name = "Product 1", TotalStock = 50, Version = Array.Empty<byte>() };
+        var product = new Product { Id = productId, Name = "Product 1", Version = Array.Empty<byte>() };
+        product.IncreaseStock(50);
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync();
 
@@ -80,8 +83,10 @@ public class InventoryFeaturesTests : IDisposable
     public async Task CheckAvailability_WithAllItemsAvailable_ShouldReturnTrue()
     {
         // Arrange
-        var p1 = new Product { Id = Guid.NewGuid(), Name = "P1", TotalStock = 10, Version = Array.Empty<byte>() };
-        var p2 = new Product { Id = Guid.NewGuid(), Name = "P2", TotalStock = 20, Version = Array.Empty<byte>() };
+        var p1 = new Product { Id = Guid.NewGuid(), Name = "P1", Version = Array.Empty<byte>() };
+        p1.IncreaseStock(10);
+        var p2 = new Product { Id = Guid.NewGuid(), Name = "P2", Version = Array.Empty<byte>() };
+        p2.IncreaseStock(20);
         _dbContext.Products.AddRange(p1, p2);
         await _dbContext.SaveChangesAsync();
 
@@ -106,7 +111,8 @@ public class InventoryFeaturesTests : IDisposable
     public async Task CheckAvailability_WithInsufficientStock_ShouldReturnFalse()
     {
         // Arrange
-        var p1 = new Product { Id = Guid.NewGuid(), Name = "P1", TotalStock = 10, Version = Array.Empty<byte>() };
+        var p1 = new Product { Id = Guid.NewGuid(), Name = "P1", Version = Array.Empty<byte>() };
+        p1.IncreaseStock(10);
         _dbContext.Products.Add(p1);
         await _dbContext.SaveChangesAsync();
 
@@ -134,11 +140,12 @@ public class InventoryFeaturesTests : IDisposable
         // Arrange
         var productId = Guid.NewGuid();
         var orderId = Guid.NewGuid();
-        var product = new Product { Id = productId, Name = "P1", TotalStock = 100, Version = Array.Empty<byte>() };
+        var product = new Product { Id = productId, Name = "P1", Version = Array.Empty<byte>() };
+        product.IncreaseStock(100);
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync();
 
-        var command = new ReserveStockCommand(orderId, productId, 30);
+        var command = new ReserveStockCommand(orderId, new List<ReserveStockItemDto> { new(productId, 30) });
         var handler = new ReserveStockCommandHandler(_dbContext, _cache);
 
         // Act
@@ -163,7 +170,8 @@ public class InventoryFeaturesTests : IDisposable
         // Arrange
         var productId = Guid.NewGuid();
         var orderId = Guid.NewGuid();
-        var product = new Product { Id = productId, Name = "P1", TotalStock = 70, Version = Array.Empty<byte>() };
+        var product = new Product { Id = productId, Name = "P1", Version = Array.Empty<byte>() };
+        product.IncreaseStock(70);
         var reservation = new StockReservation { OrderId = orderId, ProductId = productId, Quantity = 30, ExpiresAt = DateTime.UtcNow.AddMinutes(10) };
         _dbContext.Products.Add(product);
         _dbContext.StockReservations.Add(reservation);
@@ -193,8 +201,10 @@ public class InventoryFeaturesTests : IDisposable
         // Arrange
         var p1Id = Guid.NewGuid();
         var p2Id = Guid.NewGuid();
-        var p1 = new Product { Id = p1Id, Name = "P1", TotalStock = 50, Version = Array.Empty<byte>() };
-        var p2 = new Product { Id = p2Id, Name = "P2", TotalStock = 80, Version = Array.Empty<byte>() };
+        var p1 = new Product { Id = p1Id, Name = "P1", Version = Array.Empty<byte>() };
+        p1.IncreaseStock(50);
+        var p2 = new Product { Id = p2Id, Name = "P2", Version = Array.Empty<byte>() };
+        p2.IncreaseStock(80);
         _dbContext.Products.AddRange(p1, p2);
         await _dbContext.SaveChangesAsync();
 

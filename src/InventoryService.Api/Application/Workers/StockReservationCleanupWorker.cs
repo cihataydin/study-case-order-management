@@ -67,7 +67,7 @@ public class StockReservationCleanupWorker : BackgroundService
         {
             if (products.TryGetValue(reservation.ProductId, out var product))
             {
-                product.TotalStock += reservation.Quantity;
+                product.IncreaseStock(reservation.Quantity);
                 _logger.LogInformation("Released {Quantity} stock back to Product {ProductId} from expired reservation for Order {OrderId}", 
                     reservation.Quantity, reservation.ProductId, reservation.OrderId);
             }
