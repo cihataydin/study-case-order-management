@@ -59,7 +59,6 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             p => (decimal)p.Price
         );
 
-        decimal totalAmount = 0;
         var orderItems = new List<OrderItem>();
 
         foreach (var item in request.Items)
@@ -69,8 +68,6 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
                 throw new Exception($"Product {item.ProductId} not found in inventory!");
             }
 
-            totalAmount += item.Quantity * currentPrice;
-            
             orderItems.Add(new OrderItem
             {
                 ProductId = item.ProductId,
@@ -79,15 +76,13 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             });
         }
 
-        var order = new Order
-        {
-            CustomerId = request.CustomerId,
-            IdempotencyKey = request.IdempotencyKey,
-            TotalAmount = totalAmount,
-            IsVip = request.IsVip,
-            PaymentMethod = request.PaymentMethod,
-            Items = orderItems
-        };
+        var order = Order.Create(
+            request.CustomerId,
+            request.IdempotencyKey,
+            request.IsVip,
+            request.PaymentMethod,
+            orderItems
+        );
 
         _dbContext.Orders.Add(order);
 

@@ -15,13 +15,7 @@ public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
             .Must(items => items != null && items.Count <= 20)
             .WithMessage("Maximum items per order is 20.");
 
-        // RuleFor(x => x)
-        //     .Must(x => x.Items != null && x.Items.Sum(i => i.Quantity * i.UnitPrice) >= 100)
-        //     .WithMessage("Minimum order amount is 100 TL.");
-            
-        // RuleFor(x => x)
-        //     .Must(x => x.Items != null && x.Items.Sum(i => i.Quantity * i.UnitPrice) <= 50000)
-        //     .WithMessage("Maximum order amount is 50,000 TL.");
+
 
         RuleFor(x => x.PaymentMethod)
             .NotEmpty()

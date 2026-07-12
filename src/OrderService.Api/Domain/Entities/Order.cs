@@ -24,6 +24,27 @@ public class Order
 
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 
+    public static Order Create(Guid customerId, string idempotencyKey, bool isVip, string paymentMethod, List<OrderItem> items)
+    {
+        var totalAmount = items.Sum(i => i.Quantity * i.UnitPrice);
+
+        if (totalAmount < 100)
+            throw new InvalidOperationException("Minimum order amount is 100 TL.");
+
+        if (totalAmount > 50000)
+            throw new InvalidOperationException("Maximum order amount is 50,000 TL.");
+
+        return new Order
+        {
+            CustomerId = customerId,
+            IdempotencyKey = idempotencyKey,
+            TotalAmount = totalAmount,
+            IsVip = isVip,
+            PaymentMethod = paymentMethod,
+            Items = items
+        };
+    }
+
     public void Cancel()
     {
         if ((DateTime.UtcNow - CreatedAt).TotalHours > 2)
