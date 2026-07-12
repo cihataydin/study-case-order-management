@@ -3,6 +3,7 @@ using PaymentService.Api.Infrastructure.Data;
 using MassTransit;
 using Serilog;
 using System.Reflection;
+using FluentValidation;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -52,8 +53,13 @@ builder.Services.AddOpenTelemetry()
             .AddPrometheusExporter();
     });
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+builder.Services.AddMediatR(cfg => 
+{
+    cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+    cfg.AddOpenBehavior(typeof(Shared.Behaviors.ValidationBehavior<,>));
+});
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
 builder.Services.AddMassTransit(x =>
 {

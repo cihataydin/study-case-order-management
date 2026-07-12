@@ -61,7 +61,11 @@ builder.Services.AddOpenTelemetry()
             .AddPrometheusExporter();
     });
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+builder.Services.AddMediatR(cfg => 
+{
+    cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+    cfg.AddOpenBehavior(typeof(Shared.Behaviors.ValidationBehavior<,>));
+});
 
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<OrderService.Api.Application.Mapping.OrderMappingProfile>());
 

@@ -67,7 +67,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => 
     StackExchange.Redis.ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+builder.Services.AddMediatR(cfg => 
+{
+    cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+    cfg.AddOpenBehavior(typeof(Shared.Behaviors.ValidationBehavior<,>));
+});
 
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
