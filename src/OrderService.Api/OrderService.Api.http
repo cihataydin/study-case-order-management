@@ -3,16 +3,18 @@
 ### Create Order
 POST {{HostAddress}}/api/v1/orders
 Content-Type: application/json
+X-Idempotency-Key: unique-order-key-12345
 
 {
   "customerId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "idempotencyKey": "unique-order-key-12345",
   "items": [
     {
       "productId": "9b0f1a23-4567-89ab-cdef-0123456789ab",
       "quantity": 2
     }
-  ]
+  ],
+  "isVip": false,
+  "paymentMethod": "CreditCard"
 }
 
 ###
@@ -39,6 +41,18 @@ Accept: application/json
 
 ### Retry Failed Order
 POST {{HostAddress}}/api/v1/orders/{{orderId}}/retry
+Accept: application/json
+
+###
+
+### Ship Order
+PUT {{HostAddress}}/api/v1/orders/{{orderId}}/ship
+Accept: application/json
+
+###
+
+### Deliver Order
+PUT {{HostAddress}}/api/v1/orders/{{orderId}}/deliver
 Accept: application/json
 
 ###

@@ -47,3 +47,18 @@ GET {{HostAddress}}/api/v1/inventory/products/{{productId}}/stock
 Accept: application/json
 
 ###
+
+### Bulk Update Stock
+PUT {{HostAddress}}/api/v1/inventory/bulk-update
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "9b0f1a23-4567-89ab-cdef-0123456789ab",
+      "quantityChange": 50
+    }
+  ]
+}
+
+###
