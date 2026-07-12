@@ -21,11 +21,7 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .CreateLogger();
+Shared.Configurations.LogConfiguration.Initialize(builder.Configuration, builder.Environment.ApplicationName);
 
 builder.Host.UseSerilog();
 
