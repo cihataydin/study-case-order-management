@@ -17,13 +17,13 @@ public record RetryOrderCommand(Guid OrderId) : IRequest<bool>;
 public class RetryOrderCommandHandler : IRequestHandler<RetryOrderCommand, bool>
 {
     private readonly OrderDbContext _dbContext;
-    private readonly ISendEndpointProvider _sendEndpointProvider;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<RetryOrderCommandHandler> _logger;
 
-    public RetryOrderCommandHandler(OrderDbContext dbContext, ISendEndpointProvider sendEndpointProvider, ILogger<RetryOrderCommandHandler> logger)
+    public RetryOrderCommandHandler(OrderDbContext dbContext, IPublishEndpoint publishEndpoint, ILogger<RetryOrderCommandHandler> logger)
     {
         _dbContext = dbContext;
-        _sendEndpointProvider = sendEndpointProvider;
+        _publishEndpoint = publishEndpoint;
         _logger = logger;
     }
 
@@ -36,7 +36,6 @@ public class RetryOrderCommandHandler : IRequestHandler<RetryOrderCommand, bool>
         if (order == null) return false;
 
         order.Retry();
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Retrying OrderId: {OrderId}", request.OrderId);
 
@@ -49,10 +48,15 @@ public class RetryOrderCommandHandler : IRequestHandler<RetryOrderCommand, bool>
             order.PaymentMethod
         );
 
-        var queueName = order.IsVip ? "queue:vip-orders-queue" : "queue:orders-queue";
-        var sendEndpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri(queueName));
-        
-        await sendEndpoint.Send(orderCreatedEvent, cancellationToken);
+        await _publishEndpoint.Publish(orderCreatedEvent, context => 
+        {
+            if (order.IsVip)
+            {
+                context.SetPriority(9);
+            }
+        }, cancellationToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return true;
     }

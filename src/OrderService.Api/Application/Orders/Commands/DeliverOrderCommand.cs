@@ -36,10 +36,11 @@ public class DeliverOrderCommandHandler : IRequestHandler<DeliverOrderCommand, b
         }
 
         order.Deliver();
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Order {OrderId} marked as delivered.", request.OrderId);
         await _publishEndpoint.Publish(new OrderDeliveredEvent(request.OrderId), cancellationToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return true;
     }

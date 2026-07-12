@@ -19,8 +19,7 @@ namespace OrderService.Api.UnitTests;
 public class RetryOrderCommandHandlerTests : IDisposable
 {
     private readonly OrderDbContext _dbContext;
-    private readonly ISendEndpointProvider _sendEndpointProvider;
-    private readonly ISendEndpoint _sendEndpoint;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<RetryOrderCommandHandler> _logger;
     private readonly RetryOrderCommandHandler _handler;
 
@@ -31,12 +30,10 @@ public class RetryOrderCommandHandlerTests : IDisposable
             .Options;
         _dbContext = new OrderDbContext(options);
 
-        _sendEndpointProvider = Substitute.For<ISendEndpointProvider>();
-        _sendEndpoint = Substitute.For<ISendEndpoint>();
-        _sendEndpointProvider.GetSendEndpoint(Arg.Any<Uri>()).Returns(_sendEndpoint);
+        _publishEndpoint = Substitute.For<IPublishEndpoint>();
         _logger = Substitute.For<ILogger<RetryOrderCommandHandler>>();
 
-        _handler = new RetryOrderCommandHandler(_dbContext, _sendEndpointProvider, _logger);
+        _handler = new RetryOrderCommandHandler(_dbContext, _publishEndpoint, _logger);
     }
 
     [Fact]
@@ -73,7 +70,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
         Assert.NotNull(updatedOrder);
         Assert.Equal(OrderStatus.Pending, updatedOrder.Status);
 
-        await _sendEndpoint.Received(1).Send(
+        await _publishEndpoint.Received(1).Publish(
             Arg.Is<OrderCreatedEvent>(e =>
                 e.OrderId == orderId &&
                 e.CustomerId == order.CustomerId &&
@@ -82,6 +79,7 @@ public class RetryOrderCommandHandlerTests : IDisposable
                 e.PaymentMethod == "CreditCard" &&
                 e.Items.Count == 1
             ),
+            Arg.Any<IPipe<PublishContext<OrderCreatedEvent>>>(),
             Arg.Any<CancellationToken>()
         );
     }
@@ -97,7 +95,11 @@ public class RetryOrderCommandHandlerTests : IDisposable
 
         // Assert
         Assert.False(result);
-        await _sendEndpoint.DidNotReceive().Send(Arg.Any<OrderCreatedEvent>(), Arg.Any<CancellationToken>());
+        await _publishEndpoint.DidNotReceive().Publish(
+            Arg.Any<OrderCreatedEvent>(),
+            Arg.Any<IPipe<PublishContext<OrderCreatedEvent>>>(),
+            Arg.Any<CancellationToken>()
+        );
     }
 
     [Theory]
@@ -126,7 +128,11 @@ public class RetryOrderCommandHandlerTests : IDisposable
             await _handler.Handle(command, CancellationToken.None)
         );
 
-        await _sendEndpoint.DidNotReceive().Send(Arg.Any<OrderCreatedEvent>(), Arg.Any<CancellationToken>());
+        await _publishEndpoint.DidNotReceive().Publish(
+            Arg.Any<OrderCreatedEvent>(),
+            Arg.Any<IPipe<PublishContext<OrderCreatedEvent>>>(),
+            Arg.Any<CancellationToken>()
+        );
     }
 
     public void Dispose()

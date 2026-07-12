@@ -27,9 +27,16 @@ public class OrdersController : ControllerBase
             return BadRequest(new ProblemDetails { Title = "Missing Idempotency Key", Detail = "X-Idempotency-Key header is required." });
         }
 
-        var command = new CreateOrderCommand(request.CustomerId, idempotencyKey, request.Items, request.IsVip, request.PaymentMethod);
-        var orderId = await _mediator.Send(command);
-        return CreatedAtAction(nameof(GetOrderDetails), new { orderId = orderId }, new { OrderId = orderId });
+        try
+        {
+            var command = new CreateOrderCommand(request.CustomerId, idempotencyKey, request.Items, request.IsVip, request.PaymentMethod);
+            var orderId = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetOrderDetails), new { orderId = orderId }, new { OrderId = orderId });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("idempotency key"))
+        {
+            return Conflict(new ProblemDetails { Title = "Duplicate Order", Detail = ex.Message });
+        }
     }
 
     [HttpGet("{orderId:guid}")]

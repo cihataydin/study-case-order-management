@@ -21,8 +21,7 @@ namespace OrderService.Api.UnitTests;
 public class CreateOrderCommandHandlerTests : IDisposable
 {
     private readonly OrderDbContext _dbContext;
-    private readonly ISendEndpointProvider _sendEndpointProvider;
-    private readonly ISendEndpoint _sendEndpoint;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly OrderMetrics _metrics;
     private readonly IMeterFactory _meterFactory;
@@ -36,9 +35,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
             .Options;
         _dbContext = new OrderDbContext(options);
 
-        _sendEndpointProvider = Substitute.For<ISendEndpointProvider>();
-        _sendEndpoint = Substitute.For<ISendEndpoint>();
-        _sendEndpointProvider.GetSendEndpoint(Arg.Any<Uri>()).Returns(_sendEndpoint);
+        _publishEndpoint = Substitute.For<IPublishEndpoint>();
         
         _logger = Substitute.For<ILogger<CreateOrderCommandHandler>>();
 
@@ -66,7 +63,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
                     () => { });
             });
 
-        _handler = new CreateOrderCommandHandler(_dbContext, _sendEndpointProvider, _logger, _metrics, _inventoryGrpcClient);
+        _handler = new CreateOrderCommandHandler(_dbContext, _publishEndpoint, _logger, _metrics, _inventoryGrpcClient);
     }
 
     [Fact]
@@ -99,7 +96,7 @@ public class CreateOrderCommandHandlerTests : IDisposable
         Assert.Equal(OrderStatus.Pending, order.Status);
         Assert.Equal(2, order.Items.Count);
 
-        await _sendEndpoint.Received(1).Send(
+        await _publishEndpoint.Received(1).Publish(
             Arg.Is<OrderCreatedEvent>(e =>
                 e.OrderId == result &&
                 e.CustomerId == command.CustomerId &&
@@ -108,13 +105,13 @@ public class CreateOrderCommandHandlerTests : IDisposable
                 e.PaymentMethod == "CreditCard" &&
                 e.Items.Count == 2
             ),
-            Arg.Any<IPipe<SendContext<OrderCreatedEvent>>>(),
+            Arg.Any<IPipe<PublishContext<OrderCreatedEvent>>>(),
             Arg.Any<CancellationToken>()
         );
     }
 
     [Fact]
-    public async Task Handle_WithExistingIdempotencyKey_ShouldReturnExistingOrderIdWithoutRecreating()
+    public async Task Handle_WithExistingIdempotencyKey_ShouldThrowInvalidOperationException()
     {
         // Arrange
         var existingOrderId = Guid.NewGuid();
@@ -137,19 +134,17 @@ public class CreateOrderCommandHandlerTests : IDisposable
             PaymentMethod: "CreditCard"
         );
 
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(existingOrderId, result);
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _handler.Handle(command, CancellationToken.None));
+        Assert.Contains("already exists", ex.Message);
         
         var totalOrders = await _dbContext.Orders.CountAsync();
         Assert.Equal(1, totalOrders); // No new order inserted
 
         // Event should not be published again
-        await _sendEndpoint.DidNotReceive().Send(
+        await _publishEndpoint.DidNotReceive().Publish(
             Arg.Any<OrderCreatedEvent>(),
-            Arg.Any<IPipe<SendContext<OrderCreatedEvent>>>(),
+            Arg.Any<IPipe<PublishContext<OrderCreatedEvent>>>(),
             Arg.Any<CancellationToken>()
         );
     }
@@ -170,13 +165,13 @@ public class CreateOrderCommandHandlerTests : IDisposable
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        await _sendEndpoint.Received(1).Send(
+        await _publishEndpoint.Received(1).Publish(
             Arg.Is<OrderCreatedEvent>(e =>
                 e.OrderId == result &&
                 e.IsVip == true &&
                 e.PaymentMethod == "Wallet"
             ),
-            Arg.Any<IPipe<SendContext<OrderCreatedEvent>>>(),
+            Arg.Any<IPipe<PublishContext<OrderCreatedEvent>>>(),
             Arg.Any<CancellationToken>()
         );
     }

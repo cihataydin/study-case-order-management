@@ -36,10 +36,11 @@ public class ShipOrderCommandHandler : IRequestHandler<ShipOrderCommand, bool>
         }
 
         order.Ship();
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Order {OrderId} marked as shipped.", request.OrderId);
         await _publishEndpoint.Publish(new OrderShippedEvent(request.OrderId), cancellationToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return true;
     }

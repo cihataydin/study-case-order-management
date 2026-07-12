@@ -36,12 +36,13 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
         }
 
         order.Cancel();
-        await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Order {OrderId} cancelled by user.", request.OrderId);
         
         var orderItems = order.Items?.Select(i => new OrderItemDto(i.ProductId, i.Quantity, i.UnitPrice)).ToList();
         await _publishEndpoint.Publish(new OrderCancelledEvent(request.OrderId, "User requested cancellation", orderItems), cancellationToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return true;
     }

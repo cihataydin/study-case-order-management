@@ -103,7 +103,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
-app.UseSerilogRequestLogging();
+app.UseMiddleware<Shared.Middlewares.RequestResponseLoggingMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();

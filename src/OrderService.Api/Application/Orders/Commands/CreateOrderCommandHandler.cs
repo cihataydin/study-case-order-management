@@ -19,20 +19,20 @@ namespace OrderService.Api.Application.Orders.Commands;
 public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Guid>
 {
     private readonly OrderDbContext _dbContext;
-    private readonly ISendEndpointProvider _sendEndpointProvider;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly OrderMetrics _metrics;
     private readonly InventoryGrpcService.InventoryGrpcServiceClient _inventoryGrpcClient;
 
     public CreateOrderCommandHandler(
         OrderDbContext dbContext, 
-        ISendEndpointProvider sendEndpointProvider, 
+        IPublishEndpoint publishEndpoint, 
         ILogger<CreateOrderCommandHandler> logger, 
         OrderMetrics metrics,
         InventoryGrpcService.InventoryGrpcServiceClient inventoryGrpcClient)
     {
         _dbContext = dbContext;
-        _sendEndpointProvider = sendEndpointProvider;
+        _publishEndpoint = publishEndpoint;
         _logger = logger;
         _metrics = metrics;
         _inventoryGrpcClient = inventoryGrpcClient;
@@ -45,8 +45,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
 
         if (existingOrder != null)
         {
-            _logger.LogInformation("Idempotent request detected. Returning existing order id: {OrderId}", existingOrder.Id);
-            return existingOrder.Id;
+            _logger.LogWarning("Idempotent request detected. Order already exists with id: {OrderId}", existingOrder.Id);
+            throw new InvalidOperationException($"An order with idempotency key '{request.IdempotencyKey}' already exists.");
         }
 
         var grpcRequest = new GetProductPricesRequest();
@@ -86,8 +86,6 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
 
         _dbContext.Orders.Add(order);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        
         var orderCreatedEvent = new OrderCreatedEvent(
             order.Id,
             order.CustomerId,
@@ -97,15 +95,15 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Gui
             request.PaymentMethod
         );
 
-        var sendEndpoint = await _sendEndpointProvider.GetSendEndpoint(new Uri("queue:orders-queue"));
-        
-        await sendEndpoint.Send(orderCreatedEvent, context => 
+        await _publishEndpoint.Publish(orderCreatedEvent, context => 
         {
             if (request.IsVip)
             {
                 context.SetPriority(9);
             }
         }, cancellationToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Order {OrderId} created and event saved to Outbox.", order.Id);
 
