@@ -2,11 +2,22 @@
 
 This project is a simulated Order Management System developed in accordance with microservices architecture and an event-driven communication model.
 
+## ✨ Key Features & Business Rules
+*   **Idempotency:** Unique `X-Idempotency-Key` implementation preventing duplicate order submissions.
+*   **Optimistic Locking:** Concurrent requests updating stock are handled safely using EF Core `RowVersion`.
+*   **Stock Rules:** Cannot reserve more than 50% of available stock per order. Temporary stock reservations automatically expire after 10 minutes.
+*   **Resilience & Retries:** Payment Service utilizes **Polly** for exponential backoffs, simulating varying network scenarios (85% success, 10% timeout, 5% failure).
+*   **Choreography Saga Pattern:** RabbitMQ events manage the lifecycle of the order. If a payment fails, compensating transactions are dispatched to release the stock and cancel the order.
+
+For detailed architecture diagrams and system decisions, please read:
+*   [System Design Documentation](./system-design.md)
+*   [Event Architecture Flow](./event-architecture-flow.md) (Contains Mermaid Sequence Diagrams)
+
 ## 🏗 Project Structure
 *   **OrderService.Api:** Service managing the order processes. (Port: `5277`)
 *   **InventoryService.Api:** Service managing product stocks and stock reservation processes. (Port: `5050`)
 *   **PaymentService.Api:** Mock service managing payment and refund processes. (Port: `5032`)
-*   **Shared:** A shared library containing common classes, events, and message definitions used for asynchronous communication between microservices.
+*   **Shared:** A shared library containing common classes, events, exception handling, logging configuration, and message definitions used for communication between microservices.
 
 ---
 
@@ -19,7 +30,6 @@ If you want to run only the required infrastructure (PostgreSQL, Redis, RabbitMQ
 docker compose up -d
 ```
 
-This command will start all the background services on their respective standard ports.
 
 ### 2. Running the Entire Stack (Infrastructure + APIs) via Docker
 You can run the entire system, including the microservices, entirely inside Docker containers without needing the .NET SDK installed on your host machine.
@@ -65,10 +75,25 @@ Swagger UI: [http://localhost:5032/swagger/index.html](http://localhost:5032/swa
 
 ---
 
+## 📬 Postman & API Interaction
+You can find the ready-to-use Postman/Insomnia collection in the root directory:
+**`ECommerce_Order_Management.postman_collection.json`**
+
+Import this file into your API client to easily test the endpoints (e.g., POST `/api/v1/orders`) without using Swagger.
+
+### 💡 Tip for Testing (Seeded Products)
+To create an order, you will need valid `productId`s. The **Inventory Service** automatically seeds 50 dummy products into the database when it first runs. You can use the following predictable GUIDs to test your order creation payload:
+*   **Product 1:** `11111111-1111-1111-1111-000000000001`
+*   **Product 2:** `11111111-1111-1111-1111-000000000002`
+*   ...
+*   **Product 50:** `11111111-1111-1111-1111-000000000050`
+
+---
+
 ## 📝 Database and Migrations
 When the services are run for the first time, they automatically create their databases (`ecommerce_order_db`, `ecommerce_inventory_db`, and `ecommerce_payment_db`) inside PostgreSQL and migrate their schemas.
 
-If you want to apply migrations manually or add a new migration, you can use the following commands within the folder of the respective service:
+If you want to apply migrations manually or add a new migration:
 
 ```bash
 # Example: Creating a new migration for the Order Service
@@ -84,7 +109,7 @@ dotnet ef database update
 ## 🔒 Security and Configuration Note
 To ensure the local development and evaluation process is **plug-and-play**, the PostgreSQL and RabbitMQ connection details for docker-compose are defined by default in the `appsettings.json` files. 
 
-In real/production environments, it is recommended to store this sensitive data in files excluded from the repository (such as `appsettings.Development.json`), as **Environment Variables**, or in secure external secret stores like **Azure Key Vault** / **HashiCorp Vault**. The `.gitignore` file in this project is configured according to these standards.
+In real/production environments, it is recommended to store this sensitive data in files excluded from the repository (such as `appsettings.Development.json`), as **Environment Variables**, or in secure external secret stores. The `.gitignore` file in this project is configured according to these standards.
 
 ---
 
@@ -98,29 +123,16 @@ OpenTelemetry is configured to trace requests across `Order`, `Inventory`, and `
 *   **Test:** Create an order. In Jaeger, select the `OrderService.Api` service and click **Find Traces**. You will see a detailed waterfall graph showing the HTTP request, database insertions, and RabbitMQ message publishing/consuming across all three microservices.
 
 ### 2. Custom Metrics (Prometheus)
-Each service exposes runtime and HTTP metrics. The Order Service also exposes custom business metrics (SLA goals).
+Each service exposes runtime and HTTP metrics. The Order Service also exposes custom business metrics.
 *   **Access Metrics:**
     *   Order Service: [http://localhost:5277/metrics](http://localhost:5277/metrics)
     *   Inventory Service: [http://localhost:5050/metrics](http://localhost:5050/metrics)
     *   Payment Service: [http://localhost:5032/metrics](http://localhost:5032/metrics)
-*   **Test:** Create a few orders. Refresh the `http://localhost:5277/metrics` page and look for:
-    *   `orders_created_count`
-    *   `orders_success_count`
-    *   `revenue_total`
-    *   `orders_failed_count`
-    These metrics can be scraped by Prometheus and visualized in Grafana.
 
-### 3. Health Checks
-Liveness and Readiness probes are configured for API routing and orchestrators (like Kubernetes).
-*   **Access Probes:** [http://localhost:5277/health/live](http://localhost:5277/health/live) and `/health/ready` (Applies to all services).
-*   They verify PostgreSQL, Redis, and RabbitMQ connectivity.
-
-### 4. Global Exception Handling & Resilience
-*   **Validation Errors (400 Bad Request):** Send an empty `POST /api/v1/orders` request via Swagger. You will receive an RFC-7807 compliant `ProblemDetails` JSON listing the validation errors.
-*   **Concurrency Conflicts (409 Conflict):** If two identical requests try to update the exact same product stock simultaneously, Optimistic Locking (`RowVersion`) will throw a `DbUpdateConcurrencyException`. The API will automatically return a `409 Conflict` response.
-*   **Network Faults (Polly & MassTransit):** 
-    *   Entity Framework is configured with `.EnableRetryOnFailure()` to survive transient database connection drops.
-    *   MassTransit is configured with `.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)))`. If a consumer fails, it will automatically retry 3 times with a 5-second delay before moving the message to a Dead Letter Queue (DLQ).
+### 3. Global Exception Handling & Resilience
+*   **Validation Errors (400 Bad Request):** Send an empty `POST /api/v1/orders` request via Swagger. You will receive an RFC-7807 compliant `ProblemDetails` JSON.
+*   **Domain Exceptions & Conflicts (409 Conflict):** Due to strict business rules and Optimistic Locking, violations will return clear, structured 400 or 409 responses handled centrally by the `GlobalExceptionHandler`.
+*   **Network Faults (Polly & MassTransit):** MassTransit is configured with `.UseMessageRetry()`. If a consumer fails, it automatically retries before sending the message to a DLQ.
 
 ---
 
@@ -152,4 +164,3 @@ Integration tests use **Testcontainers** to spin up real PostgreSQL containers. 
 ```bash
 dotnet test tests/OrderService.Api.IntegrationTests/OrderService.Api.IntegrationTests.csproj
 ```
-
