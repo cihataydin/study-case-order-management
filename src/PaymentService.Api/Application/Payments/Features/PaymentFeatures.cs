@@ -7,16 +7,28 @@ using PaymentService.Api.Infrastructure.Data;
 using PaymentService.Api.Domain.Entities;
 using PaymentService.Api.Domain.Enums;
 
+using AutoMapper;
+
 namespace PaymentService.Api.Application.Payments.Features;
 
-public record GetPaymentStatusQuery(Guid PaymentId) : IRequest<Payment?>;
-public class GetPaymentStatusQueryHandler : IRequestHandler<GetPaymentStatusQuery, Payment?>
+public record PaymentDto(Guid Id, Guid OrderId, decimal Amount, PaymentStatus Status, string Method, DateTime CreatedAt, DateTime? UpdatedAt);
+
+public record GetPaymentStatusQuery(Guid PaymentId) : IRequest<PaymentDto?>;
+public class GetPaymentStatusQueryHandler : IRequestHandler<GetPaymentStatusQuery, PaymentDto?>
 {
     private readonly PaymentDbContext _dbContext;
-    public GetPaymentStatusQueryHandler(PaymentDbContext dbContext) => _dbContext = dbContext;
-    public async Task<Payment?> Handle(GetPaymentStatusQuery request, CancellationToken cancellationToken)
+    private readonly IMapper _mapper;
+
+    public GetPaymentStatusQueryHandler(PaymentDbContext dbContext, IMapper mapper)
     {
-        return await _dbContext.Payments.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.PaymentId, cancellationToken);
+        _dbContext = dbContext;
+        _mapper = mapper;
+    }
+
+    public async Task<PaymentDto?> Handle(GetPaymentStatusQuery request, CancellationToken cancellationToken)
+    {
+        var payment = await _dbContext.Payments.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.PaymentId, cancellationToken);
+        return payment != null ? _mapper.Map<PaymentDto>(payment) : null;
     }
 }
 

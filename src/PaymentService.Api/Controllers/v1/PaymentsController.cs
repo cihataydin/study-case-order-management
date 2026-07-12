@@ -6,7 +6,8 @@ using PaymentService.Api.Application.Payments.Features;
 namespace PaymentService.Api.Controllers.v1;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/payments")]
+[Tags("payments")]
 public class PaymentsController : ControllerBase
 {
     private readonly IMediator _mediator;

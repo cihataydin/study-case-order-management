@@ -53,6 +53,7 @@ builder.Services.AddOpenTelemetry()
     });
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
 builder.Services.AddMassTransit(x =>
 {
